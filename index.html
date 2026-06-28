@@ -518,6 +518,80 @@ body[data-mode="control"] .control{display:block}
 .person .roletag.run{color:var(--leaf);border-color:color-mix(in srgb,var(--leaf) 40%,transparent)}
 .person .roletag.owner{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 45%,transparent)}
 .seatnote{color:var(--ink-faint);font-weight:800;font-size:.76rem;margin:.2rem 0 .6rem;display:flex;gap:.4rem;align-items:center}
+
+/* ===================================================================
+   REFINED GAME HUD  — design-system pass (Greg 2026-06-28)
+   Goals: kill emoji-as-chrome, one consistent section header, crisp
+   custom icons, tighter density, stronger hierarchy.
+   =================================================================== */
+.ic24{width:1em;height:1em;display:inline-block;vertical-align:-.14em;flex:0 0 auto}
+
+/* one section-header component used everywhere */
+.shead{display:flex;align-items:center;gap:.55rem;margin-bottom:.65rem}
+.shead .ico{width:1.7rem;height:1.7rem;border-radius:9px;display:grid;place-items:center;flex:0 0 auto;
+  font-size:1rem;background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent);
+  border:1px solid color-mix(in srgb,var(--accent) 26%,transparent)}
+.shead .ttl{font-family:var(--display);font-weight:600;font-size:1.02rem;line-height:1.05;letter-spacing:.1px}
+.shead .ttl small{display:block;font-family:var(--body);font-weight:800;font-size:.68rem;color:var(--ink-faint);
+  text-transform:uppercase;letter-spacing:.6px;margin-top:.1rem}
+.shead .meta{margin-left:auto;font-weight:900;font-size:.76rem;color:var(--ink-dim)}
+.shead .meta.count{color:var(--accent);background:color-mix(in srgb,var(--accent) 13%,transparent);
+  padding:.2rem .6rem;border-radius:999px;border:1px solid color-mix(in srgb,var(--accent) 32%,transparent)}
+.shead .meta.good{color:var(--leaf);background:color-mix(in srgb,var(--leaf) 13%,transparent);
+  border:1px solid color-mix(in srgb,var(--leaf) 32%,transparent);padding:.2rem .6rem;border-radius:999px}
+
+/* tighter, crisper cards + spacing */
+.card{box-shadow:0 12px 34px -20px rgba(0,0,0,.7);border-color:rgba(150,165,255,.13)}
+.panel{padding:.8rem .9rem}
+.k-cols{gap:.8rem}
+.tasklist{gap:.42rem}
+.task{padding:.5rem .7rem}
+.task .lbl{font-size:.9rem}
+.c-section{margin-bottom:.95rem}
+.c-section > .h{font-size:1.02rem;margin:0 .1rem .6rem;gap:.55rem}
+.c-section > .h .ic24{color:var(--accent)}
+
+/* HERO (kid board): tighter, bigger mascot, no dead space */
+.k-hero{padding:.8rem .95rem;gap:.95rem;margin-bottom:.85rem;align-items:center}
+.k-hero .creature{width:clamp(72px,12vw,104px)}
+.k-hero .who{font-size:clamp(1.4rem,3.2vw,2rem)}
+.k-hero .meta{font-size:.78rem;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.5px;font-weight:800}
+.k-money{margin:.5rem 0 .4rem}
+/* compact Save/Spend/Give stat chips under the hero progress */
+.herostats{display:flex;gap:.45rem;margin-top:.55rem;flex-wrap:wrap}
+.statchip{display:inline-flex;align-items:center;gap:.35rem;padding:.28rem .6rem;border-radius:999px;
+  background:rgba(255,255,255,.05);border:1px solid var(--line);font-weight:900;font-size:.78rem}
+.statchip .ic24{width:.95em;height:.95em}
+.statchip.save{color:var(--aqua)} .statchip.spend{color:var(--gold)} .statchip.give{color:var(--rose)}
+
+/* tabs: cleaner, with room */
+.k-tabs button{display:inline-flex;align-items:center;gap:.4rem}
+.k-tabs button .ic24{width:.95em;height:.95em}
+
+/* day strip + math: remove vertical slack */
+.weekstrip{gap:.35rem;margin-bottom:.45rem}
+.daycell{padding:.5rem .15rem .55rem;border-radius:12px}
+.mathbox{margin:.1rem 0 .7rem;gap:.18rem}
+
+/* misbehavior: dense 3-up chips instead of tall cards */
+.deduct-grid{grid-template-columns:repeat(3,1fr);gap:.5rem}
+.deduct{padding:.6rem .5rem .55rem;gap:.25rem;align-items:flex-start}
+.deduct .em{font-size:1.2rem}
+.deduct .d{font-size:.78rem;font-weight:800;line-height:1.1}
+.deduct .amt{font-size:.7rem}
+
+/* pay rows: denser, branded dot instead of emoji heart */
+.paylink{padding:.7rem .85rem}
+.paylink .l{gap:.55rem}
+.paydot{width:.95rem;height:.95rem;border-radius:50%;flex:0 0 auto;box-shadow:0 0 0 3px rgba(255,255,255,.04)}
+
+/* balance card (parent): tighter, less generic */
+.c-balance{padding:1rem 1.1rem}
+.c-balance .big{font-size:2.4rem}
+
+/* earn-it-back skill cards: icon-driven, tighter */
+.skillcard .si{font-size:1.4rem;color:var(--leaf);display:grid;place-items:center}
+.skillcard .si .ic24{width:1.4rem;height:1.4rem}
 </style>
 </head>
 <body data-mode="kiosk">
@@ -644,6 +718,40 @@ function mascotHTML(k){
   if(t.img) return `<img class="mascot-img" src="assets/${t.img}" alt="${t.name} buddy">${acc}`;
   return mascotSVG(k);
 }
+
+/* ---- crisp custom icon set (replaces emoji chrome) ---- */
+const ICONS = {
+  chores:'<path d="M4 7h9M4 12h9M4 17h6"/><path d="M16 7.2l1.7 1.7L21 5.6"/>',
+  routine:'<circle cx="12" cy="12" r="8"/><path d="M12 8v4.3l3 1.7"/>',
+  jars:'<rect x="3.5" y="6.5" width="17" height="12" rx="2.5"/><path d="M3.5 10.5h17"/><circle cx="16.5" cy="14" r="1.1" fill="currentColor" stroke="none"/>',
+  collection:'<rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/>',
+  shop:'<path d="M5.5 8.5h13l-1 11h-11l-1-11z"/><path d="M9 8.5V6.5a3 3 0 0 1 6 0v2"/>',
+  coin:'<circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.6 10.1c0-1 1.1-1.6 2.4-1.6s2.4.6 2.4 1.5c0 2.2-4.8 1.1-4.8 3.3 0 1 1.1 1.6 2.4 1.6s2.4-.6 2.4-1.6"/>',
+  save:'<ellipse cx="12" cy="7" rx="7" ry="3"/><path d="M5 7v5c0 1.7 3.1 3 7 3s7-1.3 7-3V7M5 12v5c0 1.7 3.1 3 7 3s7-1.3 7-3v-5"/>',
+  spend:'<circle cx="9.5" cy="20" r="1.3"/><circle cx="17" cy="20" r="1.3"/><path d="M3 4.5h2.2l2 11h10l1.6-8H6"/>',
+  give:'<path d="M12 20s-7-4.5-7-9.5A3.7 3.7 0 0 1 12 7a3.7 3.7 0 0 1 7 3.5C19 15.5 12 20 12 20z"/>',
+  pay:'<rect x="3" y="6" width="18" height="12" rx="2.5"/><path d="M3 10h18M6.5 14.5h4"/>',
+  bolt:'<path d="M13 2.5L5.5 13H11l-1 8.5L18.5 11H13l1-8.5z"/>',
+  settings:'<path d="M4 7h8M18 7h2M4 17h2M11 17h9"/><circle cx="15" cy="7" r="2.2"/><circle cx="7.5" cy="17" r="2.2"/>',
+  crown:'<path d="M4 8.5l3.5 3L12 5l4.5 6.5L20 8.5l-1.4 9.5h-13L4 8.5z"/>',
+  family:'<circle cx="9" cy="9" r="3"/><path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/><path d="M16 7a3 3 0 0 1 0 6M17 14.2c2.4.3 3.9 2.2 3.9 4.8"/>',
+  mail:'<rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M4 8l8 5.5L20 8"/>',
+  lock:'<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  minus:'<path d="M5 12h14"/>',
+  shield:'<path d="M12 3l7 3v5c0 5-3.5 8-7 10-3.5-2-7-5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/>',
+  refresh:'<path d="M20 11a8 8 0 1 0-1.6 4.8"/><path d="M20 5v6h-6"/>',
+  undo:'<path d="M9 7L4 12l5 5"/><path d="M4 12h11a5 5 0 0 1 0 10h-2.5"/>',
+  earn:'<path d="M5 9.5v5M8 7.5v9M16 7.5v9M19 9.5v5M8 12h8"/>',
+  gift:'<rect x="4" y="9" width="16" height="11" rx="1.5"/><path d="M4 13h16M12 9v11"/><path d="M12 9S10 4.5 8 6s1.5 3 4 3M12 9s2-4.5 4-3-1.5 3-4 3"/>',
+  math:'<path d="M5 7h5M7.5 4.5v5"/><path d="M14.5 6.5h5"/><path d="M5 16.5h5M5 19h5"/><path d="M14.5 16l4 4M18.5 16l-4 4"/>',
+  read:'<path d="M12 6c-2-1.3-4.5-1.6-7-1v12c2.5-.6 5-.3 7 1 2-1.3 4.5-1.6 7-1V5c-2.5-.6-5-.3-7 1z"/><path d="M12 6v12"/>',
+  abc:'<path d="M3 18l3-9 3 9M4 15h4"/><path d="M12 6v12h3a3 3 0 0 0 0-6h-3"/><path d="M21 9.5a3 3 0 1 0 0 5"/>',
+};
+function svgIcon(name){ const p=ICONS[name]||''; return `<svg class="ic24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`; }
+function sHead(icon,title,meta,metaClass){ return `<div class="shead"><span class="ico">${svgIcon(icon)}</span>`+
+  `<span class="ttl">${title}</span>`+(meta!==undefined&&meta!==''?`<span class="meta ${metaClass||'count'}">${meta}</span>`:'')+`</div>`; }
+function skillIcon(sub){ const m={Math:'math',Counting:'math',Shapes:'collection',Colors:'gift','Sight Words':'abc',Spelling:'abc',Reading:'read'}; return svgIcon(m[sub]||'earn'); }
 
 // original-IP creatures drawn as SVG (crisp on a phone or an 80" TV)
 function creatureSVG(kind){
@@ -908,13 +1016,13 @@ function renderAmbient(){
       <div class="amb-rightcards">
         <div class="amb-panel card">
           <div class="amb-stats">
-            <div class="amb-stat"><div class="n">${money(k.jars.save)}</div><div class="k">💙 Saved</div></div>
-            <div class="amb-stat"><div class="n">${money(k.jars.give)}</div><div class="k">❤️ Given</div></div>
+            <div class="amb-stat"><div class="n">${money(k.jars.save)}</div><div class="k">Saved</div></div>
+            <div class="amb-stat"><div class="n">${money(k.jars.give)}</div><div class="k">Given</div></div>
             <div class="amb-stat"><div class="n">${choresLeft.length}</div><div class="k">Chores Left</div></div>
           </div>
         </div>
         <div class="amb-panel card">
-          <h3>📋 Still to do today</h3>
+          <h3>${svgIcon('chores')} Still to do today</h3>
           <div class="amb-tasklist">
             ${choresLeft.slice(0,4).map(c=>`<div class="task ro"><span class="box"></span><span class="lbl">${c.label}</span></div>`).join("") || `<div class="task ro done"><span class="box">✓</span><span class="lbl">All done — amazing!</span></div>`}
           </div>
@@ -948,20 +1056,25 @@ function renderKiosk(){
       <div class="creature">${mascotHTML(k)}</div>
       <div>
         <div class="who">${k.name}</div>
-        <div class="meta">${k.title} · ${k.grade==="Pre-K"?"Pre-K":k.grade+" grade"} · swipe ‹ › for next tamer</div>
+        <div class="meta">${k.title} · ${k.grade==="Pre-K"?"Pre-K":k.grade+" grade"}</div>
         <div class="k-money"><span class="big">${money(k.balance)}</span><span class="of">of ${money(FAMILY.weeklyAmount)} protected this week</span></div>
         <div class="k-hp">${hpBarHTML(k.balance)}
-          <div class="lbl"><span>${money(k.balance)} ${themeOf(k).unit} left</span><span>💙 Saved ${money(k.jars.save)} · ❤️ Given ${money(k.jars.give)}</span></div>
+          <div class="lbl"><span>${money(k.balance)} ${themeOf(k).unit} left</span></div>
+        </div>
+        <div class="herostats">
+          <span class="statchip save">${svgIcon('save')} Save ${money(k.jars.save)}</span>
+          <span class="statchip spend">${svgIcon('spend')} Spend ${money(k.jars.spend)}</span>
+          <span class="statchip give">${svgIcon('give')} Give ${money(k.jars.give)}</span>
         </div>
       </div>
     </div>
 
     <div class="k-tabs" style="margin-bottom:1rem">
-      <button data-tab="quests" aria-pressed="${kioskTab==='quests'}">Quests</button>
-      <button data-tab="routines" aria-pressed="${kioskTab==='routines'}">Routines</button>
-      <button data-tab="jars" aria-pressed="${kioskTab==='jars'}">My Jars</button>
-      <button data-tab="collection" aria-pressed="${kioskTab==='collection'}">Collection</button>
-      <button data-tab="shop" aria-pressed="${kioskTab==='shop'}">🛍️ Shop</button>
+      <button data-tab="quests" aria-pressed="${kioskTab==='quests'}">${svgIcon('chores')} Quests</button>
+      <button data-tab="routines" aria-pressed="${kioskTab==='routines'}">${svgIcon('routine')} Routines</button>
+      <button data-tab="jars" aria-pressed="${kioskTab==='jars'}">${svgIcon('jars')} Jars</button>
+      <button data-tab="collection" aria-pressed="${kioskTab==='collection'}">${svgIcon('collection')} Collection</button>
+      <button data-tab="shop" aria-pressed="${kioskTab==='shop'}">${svgIcon('shop')} Shop</button>
     </div>
 
     <div class="k-board"><div class="k-cols" id="kbody"></div></div>`;
@@ -999,44 +1112,44 @@ function renderKiosk(){
       const label = viewDay===todayIdx ? "Today" : DAYFULL[viewDay];
       const r=k.routines, allR=[...r.Morning,...r.Bedtime,...r.Nighttime];
       const rDone=allR.filter(t=>t.done).length;
-      const rsec=(name,em)=>`<div class="rsec"><div class="rt">${em} ${name}</div>
+      const rsec=(name,icon)=>`<div class="rsec"><div class="rt">${svgIcon(icon)} ${name}</div>
         <div class="tasklist">${r[name].map((t,i)=>taskHTML(t,i,"r:"+name,false)).join("")}</div></div>`;
       const eb=earnBackAvail(k), skills=SKILLS[k.grade]||[];
       const earnPanel = eb>0 ? `
         <div class="panel card earnback" style="grid-column:1/-1">
-          <h3>💪 Earn it back <span class="pill" style="border-color:color-mix(in srgb,var(--leaf) 50%,transparent);color:var(--leaf)">up to $${eb}</span></h3>
+          ${sHead('earn','Earn it back',`up to $${eb}`,'good')}
           <div class="ebsub">Rough week? Do a skill to earn a dollar back. You can win back up to the <b>$${eb}</b> you lost.</div>
           <div class="skillgrid">
-            ${skills.map((s,i)=>`<button class="skillcard" data-skill="${i}"><span class="si">${s.si}</span><span class="sn">${s.sub}</span><span class="sr">+$1</span></button>`).join('')}
+            ${skills.map((s,i)=>`<button class="skillcard" data-skill="${i}"><span class="si">${skillIcon(s.sub)}</span><span class="sn">${s.sub}</span><span class="sr">+$1</span></button>`).join('')}
           </div>
         </div>` : '';
       body.innerHTML=`
         <div style="grid-column:1/-1">${toggle}<div class="weekstrip">${strip}</div>${reconcile}</div>
         <div class="panel card">
-          <h3>Chores <span class="pill" style="border-color:${acc};color:var(--accent)">${doneN}/${due.length}</span></h3>
+          ${sHead('chores','Chores',`${doneN}/${due.length}`)}
           <div class="tasklist">${due.length?due.map(o=>choreTaskHTML(o,viewDay)).join(""):'<div class="task ro"><span class="lbl" style="color:var(--ink-faint)">Free day, no chores</span></div>'}</div>
         </div>
         <div class="panel card">
-          <h3>Routines <span class="pill" style="border-color:${acc};color:var(--accent)">${rDone}/${allR.length}</span></h3>
-          ${rsec("Morning","🌅")}${rsec("Bedtime","🛁")}${rsec("Nighttime","🌙")}
+          ${sHead('routine','Routines',`${rDone}/${allR.length}`)}
+          ${rsec("Morning","routine")}${rsec("Bedtime","routine")}${rsec("Nighttime","routine")}
         </div>
         ${earnPanel}`;
     }
   } else if(kioskTab==="routines"){
     const r=k.routines;
-    const sec=(name,em)=>`<div class="rsec"><div class="rt">${em} ${name} <span style="color:var(--ink-faint)">• every day</span></div>
+    const sec=(name,icon)=>`<div class="rsec"><div class="rt">${svgIcon(icon)} ${name} <span style="color:var(--ink-faint)">• every day</span></div>
       <div class="tasklist">${r[name].map((t,i)=>taskHTML(t,i,"r:"+name,false)).join("")}</div></div>`;
     body.innerHTML=`
-      <div class="panel card">${sec("Morning","🌅")}${sec("Nighttime","🌙")}</div>
-      <div class="panel card">${sec("Bedtime","🛁")}
-        <div class="lock-note">＋ Parent can build a custom routine and deploy it to any day</div>
+      <div class="panel card">${sec("Morning","routine")}${sec("Nighttime","routine")}</div>
+      <div class="panel card">${sec("Bedtime","routine")}
+        <div class="lock-note">${svgIcon('plus')} Parent can build a custom routine and deploy it to any day</div>
       </div>`;
   } else if(kioskTab==="jars"){
     const a=k.toAllocate, none=a<=0;
     const coins=Array.from({length:Math.min(a,40)},()=>`<span class="coin"></span>`).join("");
     const jar=(key,ico,nm)=>`
       <div class="jar ${key}">
-        <div class="ico">${ico}</div><div class="nm">${nm}</div>
+        <div class="ico" style="color:var(--jc)">${svgIcon(ico)}</div><div class="nm">${nm}</div>
         <div class="tot">${money(k.jars[key])}</div>
         <div class="glass"><i style="width:${Math.min(100,k.jars[key]/2)}%"></i></div>
         <div class="allocrow">
@@ -1048,18 +1161,18 @@ function renderKiosk(){
     body.innerHTML=`
       <div style="grid-column:1/-1">
         ${k.balance>0?`<div class="payday">
-            <div class="pd-t">🎉 It's almost payday! ${money(k.balance)} survived this week.</div>
+            <div class="pd-t">It's almost payday. ${money(k.balance)} survived this week.</div>
             <button class="btn-pay" id="payday">Turn into coins</button>
           </div>`:``}
         <div class="panel card">
-          <h3>🪙 Coins to split <span class="tosplit">${money(a)} left</span></h3>
-          <div class="coinpot">${coins || '<span style="color:var(--ink-faint);font-weight:800">All split! Great choices.</span>'}</div>
+          ${sHead('coin','Coins to split',`${money(a)} left`)}
+          <div class="coinpot">${coins || '<span style="color:var(--ink-faint);font-weight:800">All split. Great choices.</span>'}</div>
           <div class="jars">
-            ${jar("save","💙","Save")}
-            ${jar("spend","🛍️","Spend")}
-            ${jar("give","❤️","Give")}
+            ${jar("save","save","Save")}
+            ${jar("spend","spend","Spend")}
+            ${jar("give","give","Give")}
           </div>
-          <div class="teach">You decide how much to keep, spend, and share. ❤️ Give to ${k.charity} or to a brother or sister.</div>
+          <div class="teach">You decide how much to keep, spend, and share. Give to ${k.charity} or to a brother or sister.</div>
         </div>
       </div>`;
   } else if(kioskTab==="shop"){
@@ -1067,11 +1180,11 @@ function renderKiosk(){
   } else {
     body.innerHTML=`
       <div class="panel card" style="grid-column:1/-1">
-        <h3>🧩 Creature collection <span class="pill" style="color:var(--accent);border-color:color-mix(in srgb,var(--accent) 50%,transparent)">${k.collection.filter(c=>c.got).length}/${k.collection.length}</span></h3>
+        ${sHead('collection','Collection',`${k.collection.filter(c=>c.got).length}/${k.collection.length}`)}
         <div class="collection">
           ${k.collection.map(c=>`<div class="badge ${c.got?'':'locked'}">${c.got?c.em:'?'}</div>`).join("")}
         </div>
-        <div class="lock-note">🔒 Unlock new monsters as your Save jar grows — next one at ${money(Math.ceil((k.jars.save+1)/50)*50)}</div>
+        <div class="lock-note">${svgIcon('lock')} Unlock new rewards as your Save jar grows. Next one at ${money(Math.ceil((k.jars.save+1)/50)*50)}</div>
       </div>`;
   }
 }
@@ -1112,20 +1225,20 @@ function renderShop(k){
   }).join("");
 
   return `<div class="shopwrap">
-    <div class="shopnote">🛍️ Browse new buddies and stickers. A grown-up taps to unlock with the parent PIN.</div>
+    <div class="shopnote">${svgIcon('shop')} Browse new buddies and stickers. A grown-up taps to unlock with the parent PIN.</div>
 
     <div class="shopsec">
-      <h3>🎨 Themes <span class="sub">tap one you own to use it</span></h3>
+      ${sHead('collection','Themes<small>Tap one you own to use it</small>')}
       <div class="themegrid">${themeCards}</div>
     </div>
 
     <div class="shopsec">
-      <h3>🎁 Accessory packs <span class="sub">dress up your buddy</span></h3>
+      ${sHead('gift','Accessory packs<small>Dress up your buddy</small>')}
       <div class="accgrid">${accCards}</div>
     </div>
 
     <div class="shopsec">
-      <h3>⭐ Plans</h3>
+      ${sHead('crown','Plans')}
       <div class="plangrid">
         <div class="plancard">
           <div class="ph"><span class="pt">Free</span>${!ENT.pro?'<span class="pcur">Current</span>':''}</div>
@@ -1230,17 +1343,17 @@ function renderControl(){
       ${KIDS.map((x,i)=>`<button class="c-kidchip" data-kid="${i}" aria-pressed="${i===current}">
         <span class="av"><span class="creature">${mascotHTML(x)}</span></span>
         <span class="nm">${x.name}</span><span class="bx">${money(x.balance)}</span></button>`).join("")}
-      <button class="c-kidchip" style="color:var(--ink-faint)"><span class="av">＋</span><span class="nm">Add kid</span></button>
+      <button class="c-kidchip" style="color:var(--ink-faint)"><span class="av">${svgIcon('plus')}</span><span class="nm">Add kid</span></button>
     </div>
 
     <div class="c-balance card">
       <div class="big">${money(k.balance)}</div>
-      <div class="sub">${k.name} • ${money(k.balance)} of ${money(FAMILY.weeklyAmount)} kept (${pct}%) • 💙 ${money(k.jars.save)} · 🛍️ ${money(k.jars.spend)} · ❤️ ${money(k.jars.give)}</div>
+      <div class="sub">${k.name} • ${money(k.balance)} of ${money(FAMILY.weeklyAmount)} kept (${pct}%) • Save ${money(k.jars.save)} · Spend ${money(k.jars.spend)} · Give ${money(k.jars.give)}</div>
       ${hpBarHTML(k.balance)}
     </div>
 
     <div class="c-section">
-      <div class="h">⚡ Log a misbehavior <span style="color:var(--ink-faint);font-weight:800;font-size:.78rem">(−${money(FAMILY.deduction)} each)</span></div>
+      <div class="h">${svgIcon('bolt')} Log a misbehavior <span style="color:var(--ink-faint);font-weight:800;font-size:.78rem">(−${money(FAMILY.deduction)} each)</span></div>
       <div class="deduct-grid">
         ${REASONS.map((r,i)=>`<button class="deduct" data-reason="${i}">
           <span class="em">${r.em}</span><span class="d">${r.d}</span><span class="amt">−${money(FAMILY.deduction)}</span></button>`).join("")}
@@ -1248,31 +1361,31 @@ function renderControl(){
     </div>
 
     <div class="c-section">
-      <div class="h">💸 Pay ${k.name} (${money(k.jars.spend)} in Spend)</div>
+      <div class="h">${svgIcon('pay')} Pay ${k.name} (${money(k.jars.spend)} in Spend)</div>
       <div class="paycard">
-        <button class="paylink" data-pay="PayPal"><span class="l">💙 PayPal</span><span class="go">Send ${money(k.jars.spend)}</span></button>
-        <button class="paylink" data-pay="Cash App"><span class="l">💚 Cash App</span><span class="go">Send ${money(k.jars.spend)}</span></button>
-        <button class="paylink" data-pay="Venmo"><span class="l">🩵 Venmo</span><span class="go">Send ${money(k.jars.spend)}</span></button>
+        <button class="paylink" data-pay="PayPal"><span class="l"><span class="paydot" style="background:#1f6fff"></span> PayPal</span><span class="go">Send ${money(k.jars.spend)}</span></button>
+        <button class="paylink" data-pay="Cash App"><span class="l"><span class="paydot" style="background:#00d54b"></span> Cash App</span><span class="go">Send ${money(k.jars.spend)}</span></button>
+        <button class="paylink" data-pay="Venmo"><span class="l"><span class="paydot" style="background:#3d95ce"></span> Venmo</span><span class="go">Send ${money(k.jars.spend)}</span></button>
       </div>
-      <div class="pinrow">🔗 Opens the app pre-filled. You tap send. QuestBoard never touches the money.</div>
+      <div class="pinrow">${svgIcon('shield')} Opens the app pre-filled. You tap send. QuestBoard never touches the money.</div>
     </div>
 
     <div class="c-section">
-      <div class="h">❤️ Give to others (${money(k.jars.give)} in Give)</div>
+      <div class="h">${svgIcon('give')} Give to others (${money(k.jars.give)} in Give)</div>
       <div class="givecard">
-        <div class="gt">❤️ ${k.name}'s cause: ${k.charity}</div>
+        <div class="gt">${svgIcon('give')} ${k.name}'s cause: ${k.charity}</div>
         <div class="gc">${k.name} chose to give ${money(k.jars.give)}. Send it to a charity, or share it with a brother or sister.</div>
         <button class="btn warn" id="give">Donate ${money(k.jars.give)} to ${k.charity}</button>
-        ${sib?`<button class="btn" id="giveSib" style="margin-top:.5rem;width:100%">🤝 Give ${money(k.jars.give)} to ${sib.name}</button>`:''}
+        ${sib?`<button class="btn" id="giveSib" style="margin-top:.5rem;width:100%">${svgIcon('family')} Give ${money(k.jars.give)} to ${sib.name}</button>`:''}
       </div>
       <div class="row" style="margin-top:.6rem">
-        <button class="btn" id="resetweek">🔄 Start new week (${money(FAMILY.weeklyAmount)})</button>
-        <button class="btn" id="undo">↩︎ Undo last</button>
+        <button class="btn" id="resetweek">${svgIcon('refresh')} New week (${money(FAMILY.weeklyAmount)})</button>
+        <button class="btn" id="undo">${svgIcon('undo')} Undo last</button>
       </div>
     </div>
 
     <div class="c-section">
-      <div class="h">⭐ Plan & unlocks</div>
+      <div class="h">${svgIcon('crown')} Plan & unlocks</div>
       <div class="plangrid">
         <div class="plancard">
           <div class="ph"><span class="pt">Free</span>${!ENT.pro?'<span class="pcur">Current</span>':''}</div>
@@ -1294,11 +1407,11 @@ function renderControl(){
           ${ENT.pro?'<button class="upbtn owned">✓ You are on Pro</button>':'<button class="upbtn" data-upgrade="pro">Start Family Pro</button>'}
         </div>
       </div>
-      <div class="seatnote">🔒 Core chores, money and learning stay free forever. Pro adds extra themes and helpers.</div>
+      <div class="seatnote">${svgIcon('shield')} Core chores, money and learning stay free forever. Pro adds extra themes and helpers.</div>
     </div>
 
     <div class="c-section">
-      <div class="h">👪 Family & Access</div>
+      <div class="h">${svgIcon('family')} Family & Access</div>
       ${CAREGIVERS.map((c,i)=>`<div class="person">
         <span class="pav">${c.init}</span>
         <span class="pinfo"><span class="pn">${c.name}</span><span class="pr">${c.sub}</span></span>
@@ -1307,20 +1420,20 @@ function renderControl(){
           : `<button class="roletag ${c.role==='run'?'run':''}" data-role="${i}">${c.role==='run'?'Run the day':'View only'}</button>`}
       </div>`).join("")}
       <div class="seatnote">${ENT.pro
-        ? '✨ Unlimited caregivers with Pro.'
+        ? svgIcon('crown')+' Unlimited caregivers with Pro.'
         : `Using ${seatsUsed()}/${FREE_SEATS+ENT.extraSeats} free seat${(FREE_SEATS+ENT.extraSeats)>1?'s':''}. More are $0.99 each, or unlimited with Pro.`}</div>
-      <button class="btn" id="invite" style="width:100%">✉️ Invite by email or text</button>
-      <div class="pinrow">👀 Caregivers can view and run the day. Only the owner can buy, pay, or change settings.</div>
+      <button class="btn" id="invite" style="width:100%">${svgIcon('mail')} Invite by email or text</button>
+      <div class="pinrow">${svgIcon('family')} Caregivers can view and run the day. Only the owner can buy, pay, or change settings.</div>
     </div>
 
     <div class="c-section">
-      <div class="h">⚙️ Settings (this kid)</div>
+      <div class="h">${svgIcon('settings')} Settings (this kid)</div>
       <div class="cfg"><span class="k">Weekly amount</span>
         <span class="v"><span class="stepper"><button data-cfg="w-">−</button><span id="wAmt">${money(FAMILY.weeklyAmount)}</span><button data-cfg="w+">＋</button></span></span></div>
       <div class="cfg"><span class="k">Deduction size</span>
         <span class="v"><span class="stepper"><button data-cfg="d-">−</button><span id="dAmt">${money(FAMILY.deduction)}</span><button data-cfg="d+">＋</button></span></span></div>
       <div class="cfg"><span class="k">Week starts</span><span class="v">${FAMILY.weekStart}</span></div>
-      <div class="pinrow">🔒 In the real app, everything on this screen sits behind a parent PIN</div>
+      <div class="pinrow">${svgIcon('lock')} In the real app, everything on this screen sits behind a parent PIN</div>
     </div>`;
 }
 
