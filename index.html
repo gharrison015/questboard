@@ -592,6 +592,75 @@ body[data-mode="control"] .control{display:block}
 /* earn-it-back skill cards: icon-driven, tighter */
 .skillcard .si{font-size:1.4rem;color:var(--leaf);display:grid;place-items:center}
 .skillcard .si .ic24{width:1.4rem;height:1.4rem}
+
+/* ===================================================================
+   FIT-TO-SCREEN pass (Greg 2026-06-28: "shouldn't have to scroll")
+   Cut duplication, denser rhythm, compact summaries.
+   =================================================================== */
+.k-hero{padding:.7rem .85rem;gap:.8rem;margin-bottom:.65rem}
+.k-hero .who{font-size:clamp(1.3rem,3vw,1.85rem)}
+.k-money{margin:.3rem 0 .28rem}
+.k-money .big{font-size:clamp(1.45rem,3.8vw,2rem)}
+.k-hp .hptrack{height:1.15rem}
+.k-hp .lbl{margin-top:.28rem;font-size:.74rem}
+.herostats{margin-top:.45rem;gap:.4rem}
+.statchip{padding:.24rem .55rem;font-size:.75rem}
+.k-tabs{margin-bottom:.7rem !important}
+.weekstrip{gap:.3rem;margin-bottom:.4rem}
+.daycell{padding:.4rem .1rem .45rem;border-radius:11px}
+.daycell .amt{font-size:clamp(1rem,2.2vw,1.4rem)}
+.daycell .dn{font-size:.64rem}
+.mathbox{margin:.05rem 0 .55rem;gap:.1rem}
+.mline{font-size:.84rem}
+.mline.big{font-size:clamp(1.05rem,2.5vw,1.45rem)}
+.panel{padding:.7rem .85rem}
+.task{padding:.45rem .65rem}
+.task .box{width:1.25rem;height:1.25rem}
+.task .lbl{font-size:.86rem}
+
+/* chores as a tight two-up grid so 5 fit in 3 rows, no tall single column */
+.tasklist.grid2{grid-template-columns:1fr 1fr}
+@media (max-width:380px){.tasklist.grid2{grid-template-columns:1fr}}
+
+/* one-line summary row (routines link on the kid board) */
+.summaryrow{grid-column:1/-1;display:flex;align-items:center;gap:.6rem;width:100%;padding:.6rem .8rem;
+  border-radius:var(--r-md);background:var(--card);border:1px solid var(--line);color:var(--ink);text-align:left}
+.summaryrow:active{transform:scale(.99)}
+.srow-ic{width:1.7rem;height:1.7rem;border-radius:9px;display:grid;place-items:center;flex:0 0 auto;color:var(--accent);
+  background:color-mix(in srgb,var(--accent) 16%,transparent);border:1px solid color-mix(in srgb,var(--accent) 26%,transparent)}
+.srow-ic .ic24{width:1rem;height:1rem}
+.srow-t{font-family:var(--display);font-weight:600;font-size:.95rem}
+.srow-m{margin-left:auto;font-weight:900;font-size:.78rem;color:var(--ink-dim)}
+.srow-go{font-weight:900;font-size:.78rem;color:var(--accent)}
+
+/* parent: collapse the two big plan cards into one compact strip */
+.planstrip{display:flex;align-items:center;gap:.7rem;padding:.7rem .85rem;border-radius:var(--r-md);
+  border:1px solid color-mix(in srgb,var(--gold) 45%,var(--line));
+  background:linear-gradient(120deg,color-mix(in srgb,var(--gold) 12%,transparent),transparent 70%)}
+.ps-info{min-width:0;display:flex;flex-direction:column}
+.ps-now{font-family:var(--display);font-weight:700;font-size:1rem}
+.ps-sub{font-size:.74rem;color:var(--ink-dim);font-weight:800;line-height:1.15}
+.ps-up{margin-left:auto;flex:0 0 auto;font-family:var(--display);font-weight:600;font-size:.85rem;padding:.5rem .85rem;
+  border-radius:999px;background:linear-gradient(90deg,#ffd23f,#ffb03a);color:#13183f;border:none}
+.ps-badge{margin-left:auto;flex:0 0 auto;font-weight:900;font-size:.75rem;color:var(--leaf);
+  background:color-mix(in srgb,var(--leaf) 14%,transparent);border:1px solid color-mix(in srgb,var(--leaf) 35%,transparent);
+  padding:.3rem .7rem;border-radius:999px}
+.c-balance{padding:.85rem 1rem}
+.c-balance .big{font-size:2.1rem}
+.c-balance .hpwrap{margin-top:.6rem}
+.c-section{margin-bottom:.8rem}
+.hbtn{width:100%;background:none;border:none;cursor:pointer}
+.c-section.coll > .hbtn{display:flex;align-items:center;gap:.55rem;margin:0 .1rem;padding:.55rem .1rem}
+.c-section.coll{border-bottom:1px solid var(--line);padding-bottom:.2rem;margin-bottom:.55rem}
+.c-section.coll.open{border-bottom:none}
+.chev{margin-left:auto;color:var(--ink-faint);transition:transform .2s;display:grid;place-items:center}
+.chev .ic24{width:1.15rem;height:1.15rem}
+.c-section.coll.open .chev{transform:rotate(180deg)}
+.c-body{padding-top:.2rem}
+/* pay rows compact as a single 3-up row */
+.paycard.compact{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem}
+.paycard.compact .paylink{flex-direction:column;align-items:flex-start;gap:.3rem;padding:.6rem .65rem}
+.paycard.compact .paylink .go{font-size:.82rem}
 </style>
 </head>
 <body data-mode="kiosk">
@@ -747,11 +816,19 @@ const ICONS = {
   math:'<path d="M5 7h5M7.5 4.5v5"/><path d="M14.5 6.5h5"/><path d="M5 16.5h5M5 19h5"/><path d="M14.5 16l4 4M18.5 16l-4 4"/>',
   read:'<path d="M12 6c-2-1.3-4.5-1.6-7-1v12c2.5-.6 5-.3 7 1 2-1.3 4.5-1.6 7-1V5c-2.5-.6-5-.3-7 1z"/><path d="M12 6v12"/>',
   abc:'<path d="M3 18l3-9 3 9M4 15h4"/><path d="M12 6v12h3a3 3 0 0 0 0-6h-3"/><path d="M21 9.5a3 3 0 1 0 0 5"/>',
+  chev:'<path d="M6 9l6 6 6-6"/>',
 };
 function svgIcon(name){ const p=ICONS[name]||''; return `<svg class="ic24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`; }
 function sHead(icon,title,meta,metaClass){ return `<div class="shead"><span class="ico">${svgIcon(icon)}</span>`+
   `<span class="ttl">${title}</span>`+(meta!==undefined&&meta!==''?`<span class="meta ${metaClass||'count'}">${meta}</span>`:'')+`</div>`; }
 function skillIcon(sub){ const m={Math:'math',Counting:'math',Shapes:'collection',Colors:'gift','Sight Words':'abc',Spelling:'abc',Reading:'read'}; return svgIcon(m[sub]||'earn'); }
+/* collapsible parent section so the phone view fits without scrolling */
+let openSec={pay:false,give:false,plan:false,family:false,settings:false};
+function cSection(key,headerHTML,bodyHTML){ const open=!!openSec[key];
+  return `<div class="c-section coll ${open?'open':''}">
+    <button class="h hbtn" data-sec="${key}">${headerHTML}<span class="chev">${svgIcon('chev')}</span></button>
+    <div class="c-body" ${open?'':'hidden'}>${bodyHTML}</div>
+  </div>`; }
 
 // original-IP creatures drawn as SVG (crisp on a phone or an 80" TV)
 function creatureSVG(kind){
@@ -1125,14 +1202,16 @@ function renderKiosk(){
         </div>` : '';
       body.innerHTML=`
         <div style="grid-column:1/-1">${toggle}<div class="weekstrip">${strip}</div>${reconcile}</div>
-        <div class="panel card">
-          ${sHead('chores','Chores',`${doneN}/${due.length}`)}
-          <div class="tasklist">${due.length?due.map(o=>choreTaskHTML(o,viewDay)).join(""):'<div class="task ro"><span class="lbl" style="color:var(--ink-faint)">Free day, no chores</span></div>'}</div>
+        <div class="panel card" style="grid-column:1/-1">
+          ${sHead('chores',viewDay===todayIdx?"Today's chores":DAYFULL[viewDay]+" chores",`${doneN}/${due.length}`)}
+          <div class="tasklist grid2">${due.length?due.map(o=>choreTaskHTML(o,viewDay)).join(""):'<div class="task ro"><span class="lbl" style="color:var(--ink-faint)">Free day, no chores</span></div>'}</div>
         </div>
-        <div class="panel card">
-          ${sHead('routine','Routines',`${rDone}/${allR.length}`)}
-          ${rsec("Morning","routine")}${rsec("Bedtime","routine")}${rsec("Nighttime","routine")}
-        </div>
+        <button class="summaryrow" data-tab="routines">
+          <span class="srow-ic">${svgIcon('routine')}</span>
+          <span class="srow-t">Daily routines</span>
+          <span class="srow-m">${rDone}/${allR.length} done</span>
+          <span class="srow-go">View</span>
+        </button>
         ${earnPanel}`;
     }
   } else if(kioskTab==="routines"){
@@ -1360,18 +1439,15 @@ function renderControl(){
       </div>
     </div>
 
-    <div class="c-section">
-      <div class="h">${svgIcon('pay')} Pay ${k.name} (${money(k.jars.spend)} in Spend)</div>
-      <div class="paycard">
-        <button class="paylink" data-pay="PayPal"><span class="l"><span class="paydot" style="background:#1f6fff"></span> PayPal</span><span class="go">Send ${money(k.jars.spend)}</span></button>
-        <button class="paylink" data-pay="Cash App"><span class="l"><span class="paydot" style="background:#00d54b"></span> Cash App</span><span class="go">Send ${money(k.jars.spend)}</span></button>
-        <button class="paylink" data-pay="Venmo"><span class="l"><span class="paydot" style="background:#3d95ce"></span> Venmo</span><span class="go">Send ${money(k.jars.spend)}</span></button>
+    ${cSection('pay', `${svgIcon('pay')} Pay ${k.name} <span style="color:var(--ink-faint);font-weight:800;font-size:.78rem">${money(k.jars.spend)} in Spend</span>`, `
+      <div class="paycard compact">
+        <button class="paylink" data-pay="PayPal"><span class="l"><span class="paydot" style="background:#1f6fff"></span> PayPal</span><span class="go">${money(k.jars.spend)}</span></button>
+        <button class="paylink" data-pay="Cash App"><span class="l"><span class="paydot" style="background:#00d54b"></span> Cash App</span><span class="go">${money(k.jars.spend)}</span></button>
+        <button class="paylink" data-pay="Venmo"><span class="l"><span class="paydot" style="background:#3d95ce"></span> Venmo</span><span class="go">${money(k.jars.spend)}</span></button>
       </div>
-      <div class="pinrow">${svgIcon('shield')} Opens the app pre-filled. You tap send. QuestBoard never touches the money.</div>
-    </div>
+      <div class="pinrow">${svgIcon('shield')} Opens the app pre-filled. You tap send. QuestBoard never touches the money.</div>`)}
 
-    <div class="c-section">
-      <div class="h">${svgIcon('give')} Give to others (${money(k.jars.give)} in Give)</div>
+    ${cSection('give', `${svgIcon('give')} Give to others <span style="color:var(--ink-faint);font-weight:800;font-size:.78rem">${money(k.jars.give)} in Give</span>`, `
       <div class="givecard">
         <div class="gt">${svgIcon('give')} ${k.name}'s cause: ${k.charity}</div>
         <div class="gc">${k.name} chose to give ${money(k.jars.give)}. Send it to a charity, or share it with a brother or sister.</div>
@@ -1381,37 +1457,18 @@ function renderControl(){
       <div class="row" style="margin-top:.6rem">
         <button class="btn" id="resetweek">${svgIcon('refresh')} New week (${money(FAMILY.weeklyAmount)})</button>
         <button class="btn" id="undo">${svgIcon('undo')} Undo last</button>
-      </div>
-    </div>
+      </div>`)}
 
-    <div class="c-section">
-      <div class="h">${svgIcon('crown')} Plan & unlocks</div>
-      <div class="plangrid">
-        <div class="plancard">
-          <div class="ph"><span class="pt">Free</span>${!ENT.pro?'<span class="pcur">Current</span>':''}</div>
-          <ul>
-            <li>All chores, money and earn-it-back</li>
-            <li>Up to 2 kids and 4 starter themes</li>
-            <li>1 caregiver to share with</li>
-            <li class="no">Premium themes and packs</li>
-          </ul>
+    ${cSection('plan', `${svgIcon('crown')} Plan`, `
+      <div class="planstrip">
+        <div class="ps-info">
+          <span class="ps-now">${ENT.pro?'Family Pro':'Free plan'}</span>
+          <span class="ps-sub">${ENT.pro?'All themes, packs and caregivers unlocked.':'Core stays free. Premium themes and packs live in Shop.'}</span>
         </div>
-        <div class="plancard pro">
-          <div class="ph"><span class="pt">Family Pro</span><span class="pp">$3.99<span style="font-size:.6em">/mo</span></span></div>
-          <ul>
-            <li>Everything in Free</li>
-            <li>All ${THEME_ORDER.length} themes and every pack</li>
-            <li>Unlimited kids and caregivers</li>
-            <li>Parent insights and history</li>
-          </ul>
-          ${ENT.pro?'<button class="upbtn owned">✓ You are on Pro</button>':'<button class="upbtn" data-upgrade="pro">Start Family Pro</button>'}
-        </div>
-      </div>
-      <div class="seatnote">${svgIcon('shield')} Core chores, money and learning stay free forever. Pro adds extra themes and helpers.</div>
-    </div>
+        ${ENT.pro?'<span class="ps-badge">Active</span>':'<button class="ps-up" data-upgrade="pro">Go Pro $3.99</button>'}
+      </div>`)}
 
-    <div class="c-section">
-      <div class="h">${svgIcon('family')} Family & Access</div>
+    ${cSection('family', `${svgIcon('family')} Family & Access`, `
       ${CAREGIVERS.map((c,i)=>`<div class="person">
         <span class="pav">${c.init}</span>
         <span class="pinfo"><span class="pn">${c.name}</span><span class="pr">${c.sub}</span></span>
@@ -1422,19 +1479,15 @@ function renderControl(){
       <div class="seatnote">${ENT.pro
         ? svgIcon('crown')+' Unlimited caregivers with Pro.'
         : `Using ${seatsUsed()}/${FREE_SEATS+ENT.extraSeats} free seat${(FREE_SEATS+ENT.extraSeats)>1?'s':''}. More are $0.99 each, or unlimited with Pro.`}</div>
-      <button class="btn" id="invite" style="width:100%">${svgIcon('mail')} Invite by email or text</button>
-      <div class="pinrow">${svgIcon('family')} Caregivers can view and run the day. Only the owner can buy, pay, or change settings.</div>
-    </div>
+      <button class="btn" id="invite" style="width:100%">${svgIcon('mail')} Invite by email or text</button>`)}
 
-    <div class="c-section">
-      <div class="h">${svgIcon('settings')} Settings (this kid)</div>
+    ${cSection('settings', `${svgIcon('settings')} Settings`, `
       <div class="cfg"><span class="k">Weekly amount</span>
         <span class="v"><span class="stepper"><button data-cfg="w-">−</button><span id="wAmt">${money(FAMILY.weeklyAmount)}</span><button data-cfg="w+">＋</button></span></span></div>
       <div class="cfg"><span class="k">Deduction size</span>
         <span class="v"><span class="stepper"><button data-cfg="d-">−</button><span id="dAmt">${money(FAMILY.deduction)}</span><button data-cfg="d+">＋</button></span></span></div>
       <div class="cfg"><span class="k">Week starts</span><span class="v">${FAMILY.weekStart}</span></div>
-      <div class="pinrow">${svgIcon('lock')} In the real app, everything on this screen sits behind a parent PIN</div>
-    </div>`;
+      <div class="pinrow">${svgIcon('lock')} In the real app, everything here sits behind a parent PIN</div>`)}`;
 }
 
 let lastAction=null;
@@ -1477,6 +1530,8 @@ document.addEventListener("click",e=>{
   if(b.id==="invite"){ inviteCaregiver(); return; }
   if(b.dataset.role!==undefined){ const c=CAREGIVERS[+b.dataset.role];
     if(c.role!=="owner"){ c.role=c.role==="run"?"view":"run"; render(); toast("👪",`${c.name}: ${c.role==='run'?'can run the day':'view only'}`); } return; }
+  // parent: collapse/expand a section
+  if(b.dataset.sec){ openSec[b.dataset.sec]=!openSec[b.dataset.sec]; renderControl(); return; }
 
   // mode switch
   if(b.dataset.mode){ setMode(b.dataset.mode,true); return; }
