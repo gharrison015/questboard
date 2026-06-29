@@ -1,7 +1,7 @@
 /* QuestBoard prototype service worker.
    Cache-first for the shell + mascot art so it loads instantly and
    works offline once installed to the home screen. */
-const CACHE = "questboard-proto-v3";
+const CACHE = "questboard-proto-v4";
 const ASSETS = [
   ".",
   "index.html",

@@ -661,6 +661,31 @@ body[data-mode="control"] .control{display:block}
 .paycard.compact{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem}
 .paycard.compact .paylink{flex-direction:column;align-items:flex-start;gap:.3rem;padding:.6rem .65rem}
 .paycard.compact .paylink .go{font-size:.82rem}
+
+/* ===================================================================
+   KPI HERO (Greg 2026-06-28): pack the header card, math goes up top,
+   day strip rises under the tabs.
+   =================================================================== */
+.k-hero{align-items:stretch;gap:.85rem}
+.hero-main{display:flex;flex-direction:column;gap:.42rem;min-width:0;flex:1}
+.hero-row1{display:flex;align-items:flex-start;justify-content:space-between;gap:.7rem}
+.hero-id{min-width:0}
+.hero-id .who{line-height:1}
+.hero-id .meta{margin-top:.12rem}
+.balbox{display:flex;flex-direction:column;align-items:flex-end;line-height:1;flex:0 0 auto;text-align:right}
+.balbox .big{font-family:var(--display);font-weight:700;font-size:clamp(1.65rem,5vw,2.3rem);color:var(--accent);line-height:.85;
+  text-shadow:0 0 26px color-mix(in srgb,var(--accent) 40%,transparent)}
+.balbox .of{color:var(--ink-dim);font-weight:800;font-size:.72rem;margin-top:.18rem}
+.k-hero .k-hp{margin:0}
+.hero-math{display:flex;flex-direction:column;gap:.02rem;line-height:1.25}
+.hm-lost{font-weight:800;font-size:.74rem;color:var(--ink-dim)}
+.hm-lost b{color:var(--rose);font-weight:900}
+.hm-eq{font-family:var(--display);font-weight:600;font-size:.98rem;color:var(--ink)}
+.hm-eq .op{color:var(--ink-faint);margin:0 .05rem}
+.hm-eq b{color:var(--accent);font-weight:700}
+.herostats{margin-top:.12rem}
+/* day strip rises right under the tabs */
+.qhead{margin-bottom:.4rem}
 </style>
 </head>
 <body data-mode="kiosk">
@@ -1120,6 +1145,9 @@ let kioskTab="quests";
 let questView="today";   // 'today' | 'week'
 function renderKiosk(){
   const k=kid(); const el=$("#kiosk"); setAccent(document.body,k);
+  const tl=totalLost(k);
+  const lossVals=DAYS.map((_,di)=>k.lost[di]||0).filter(v=>v>0);
+  const lossExpr=lossVals.length ? lossVals.map(v=>`$${v}`).join(" + ") : "$0";
   el.innerHTML=`
     <div class="k-head">
       <div class="k-brand">Quest<b>Board</b></div>
@@ -1131,12 +1159,15 @@ function renderKiosk(){
 
     <div class="k-hero card">
       <div class="creature">${mascotHTML(k)}</div>
-      <div>
-        <div class="who">${k.name}</div>
-        <div class="meta">${k.title} · ${k.grade==="Pre-K"?"Pre-K":k.grade+" grade"}</div>
-        <div class="k-money"><span class="big">${money(k.balance)}</span><span class="of">of ${money(FAMILY.weeklyAmount)} protected this week</span></div>
-        <div class="k-hp">${hpBarHTML(k.balance)}
-          <div class="lbl"><span>${money(k.balance)} ${themeOf(k).unit} left</span></div>
+      <div class="hero-main">
+        <div class="hero-row1">
+          <div class="hero-id"><div class="who">${k.name}</div><div class="meta">${k.title} · ${k.grade==="Pre-K"?"Pre-K":k.grade+" grade"}</div></div>
+          <div class="balbox"><span class="big">${money(k.balance)}</span><span class="of">of ${money(FAMILY.weeklyAmount)} kept</span></div>
+        </div>
+        <div class="k-hp">${hpBarHTML(k.balance)}</div>
+        <div class="hero-math">
+          <span class="hm-lost">Lost this week: <b>${lossExpr}</b>${lossVals.length>1?` = ${money(tl)}`:''}</span>
+          <span class="hm-eq">${money(FAMILY.weeklyAmount)} <span class="op">−</span> ${money(tl)} <span class="op">=</span> <b>${money(k.balance)}</b> to save, spend or give</span>
         </div>
         <div class="herostats">
           <span class="statchip save">${svgIcon('save')} Save ${money(k.jars.save)}</span>
@@ -1146,7 +1177,7 @@ function renderKiosk(){
       </div>
     </div>
 
-    <div class="k-tabs" style="margin-bottom:1rem">
+    <div class="k-tabs" style="margin-bottom:.55rem">
       <button data-tab="quests" aria-pressed="${kioskTab==='quests'}">${svgIcon('chores')} Quests</button>
       <button data-tab="routines" aria-pressed="${kioskTab==='routines'}">${svgIcon('routine')} Routines</button>
       <button data-tab="jars" aria-pressed="${kioskTab==='jars'}">${svgIcon('jars')} Jars</button>
@@ -1158,7 +1189,6 @@ function renderKiosk(){
 
   const body=$("#kbody",el);
   if(kioskTab==="quests"){
-    const tl = totalLost(k);
     const acc = "color-mix(in srgb,var(--accent) 50%,transparent)";
     const dayMoney = (di)=>{ const lost=k.lost[di]||0; const future=di>todayIdx;
       return {cls:future?'future':(lost>0?'lost':'perfect'), amt:future?'·':(lost>0?`-$${lost}`:'$0'), lost, future}; };
@@ -1166,12 +1196,6 @@ function renderKiosk(){
       return `<button class="daycell ${m.cls} ${di===viewDay&&questView==='today'?'sel':''} ${di===todayIdx?'today':''}" data-day="${di}">
         ${di===todayIdx?'<span class="todaytag">today</span>':''}
         <span class="dn">${d}</span><span class="amt">${m.amt}</span></button>`; }).join("");
-    const lossVals = DAYS.map((_,di)=>k.lost[di]||0).filter(v=>v>0);
-    const lossExpr = lossVals.length ? lossVals.map(v=>`$${v}`).join(" + ") : "$0";
-    const reconcile = `<div class="mathbox">
-      <div class="mline">Money lost this week: <span class="terms">${lossExpr}</span>${lossVals.length>1?` = <b class="loss">$${tl}</b>`:''}</div>
-      <div class="mline big">${money(FAMILY.weeklyAmount)} <span class="op">−</span> $${tl} <span class="op">=</span> <b class="eq">${money(k.balance)}</b><span class="lbl">to save, spend or give</span></div>
-    </div>`;
     const toggle = `<div class="qhead"><div class="viewtoggle">
       <button data-qview="today" aria-pressed="${questView==='today'}">Today</button>
       <button data-qview="week" aria-pressed="${questView==='week'}">Week</button></div></div>`;
@@ -1182,7 +1206,7 @@ function renderKiosk(){
           <div class="wch"><span class="wd">${DAYS[di]}</span><span class="wm ${m.cls}">${m.amt}</span></div>
           ${due.length?due.map(o=>`<button class="minitask ${o.c.done[di]?'done':''}" data-group="chore" data-i="${o.idx}" data-day="${di}"><span class="mb">${o.c.done[di]?'✓':''}</span><span class="ml">${o.c.label}</span></button>`).join(''):'<div class="rpill">free day</div>'}
           <div class="rpill">+ daily routines</div></div>`; };
-      body.innerHTML=`<div style="grid-column:1/-1">${toggle}<div class="weekstrip">${strip}</div>${reconcile}
+      body.innerHTML=`<div style="grid-column:1/-1">${toggle}<div class="weekstrip">${strip}</div>
         <div class="weekgrid">${DAYS.map((_,di)=>col(di)).join('')}</div></div>`;
     } else {
       const due=dayDue(k,viewDay), doneN=dayDone(k,viewDay);
@@ -1201,7 +1225,7 @@ function renderKiosk(){
           </div>
         </div>` : '';
       body.innerHTML=`
-        <div style="grid-column:1/-1">${toggle}<div class="weekstrip">${strip}</div>${reconcile}</div>
+        <div style="grid-column:1/-1">${toggle}<div class="weekstrip">${strip}</div></div>
         <div class="panel card" style="grid-column:1/-1">
           ${sHead('chores',viewDay===todayIdx?"Today's chores":DAYFULL[viewDay]+" chores",`${doneN}/${due.length}`)}
           <div class="tasklist grid2">${due.length?due.map(o=>choreTaskHTML(o,viewDay)).join(""):'<div class="task ro"><span class="lbl" style="color:var(--ink-faint)">Free day, no chores</span></div>'}</div>
