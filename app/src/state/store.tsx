@@ -37,6 +37,8 @@ export interface Actions {
   unlockParent(pin: string): Promise<'ok' | 'bad' | 'locked'>
   lockParent(): void
   replaceAll(family: Family, events: QBEvent[]): Promise<void>
+  /** Wipes storage and returns to the empty install, which shows the setup wizard. */
+  eraseAll(): Promise<void>
 }
 
 const StoreCtx = createContext<StoreValue | null>(null)
@@ -140,6 +142,13 @@ export function StoreProvider({ adapter, children }: { adapter: StorageAdapter; 
         await adapter.saveDevice(device)
         await adapter.saveLockout(lockout)
         commit({ family, events: all, currentKidId: null, view: 'kid' })
+      }),
+      eraseAll: () => enqueue(async () => {
+        await adapter.wipe()
+        commit({
+          family: null, events: [], device: DEFAULT_DEVICE, lockout: EMPTY_LOCKOUT,
+          currentKidId: null, parentUnlockedAt: null, view: 'kid',
+        })
       }),
     }
   }, [adapter, commit])

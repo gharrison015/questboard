@@ -226,10 +226,12 @@ describe('parent view', () => {
     await waitFor(() => expect(screen.queryByRole('region', { name: 'Log a deduction' })).toBeNull())
   })
 
-  it('Settings shows the placeholder', async () => {
+  it('Settings opens the settings screen and Back returns', async () => {
     await mount()
     fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
-    expect(screen.getByText('Settings coming in Task 15')).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Settings' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+    expect(screen.getByRole('region', { name: 'Log a deduction' })).toBeInTheDocument()
   })
 })
 

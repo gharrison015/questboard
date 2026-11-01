@@ -66,14 +66,12 @@ export function ParentView() {
     <section className="pr-view" aria-label="Parent">
       <div className="pr-bar">
         <h2 className="pr-title">{settings ? 'Settings' : 'Parent'}</h2>
-        {settings ? (
-          <Button variant="quiet" onClick={() => setSettings(false)}>Back</Button>
-        ) : (
+        {settings ? null : (
           <Button variant="quiet" icon="settings" onClick={() => setSettings(true)}>Settings</Button>
         )}
         <Button variant="quiet" icon="lock" onClick={parent.lock}>Lock</Button>
       </div>
-      {settings ? <SettingsView /> : (
+      {settings ? <SettingsView onBack={() => setSettings(false)} /> : (
         <div className="pr-cols">
           <div className="pr-col">
             <BalanceCard kid={kid} />
