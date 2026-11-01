@@ -39,7 +39,10 @@ function KidCard({ kid, index, canRemove, onChange, onRemove }: {
       </div>
       <div className="st-chips" role="group" aria-label={`Buddy for kid ${n}`}>
         {FREE_THEMES.map((t) => (
-          <button key={t} type="button" className="st-chip" aria-pressed={kid.theme === t} onClick={() => onChange({ theme: t })}>{THEMES[t].name}</button>
+          <button key={t} type="button" className="st-chip su-chip" aria-pressed={kid.theme === t} onClick={() => onChange({ theme: t })}>
+            <img className="su-chip-img" src={`${import.meta.env.BASE_URL}buddies/${THEMES[t].img}`} alt="" width={48} height={48} />
+            <span>{THEMES[t].name}</span>
+          </button>
         ))}
       </div>
       <div className="st-row st-row-wrap">

@@ -36,3 +36,5 @@
 .su-buddies { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; margin: 0; padding: 0; list-style: none; }
 .su-buddy { display: grid; justify-items: center; gap: 4px; font-weight: 800; }
 .su-buddy img { object-fit: contain; }
+.su-chip { flex-direction: column; justify-content: center; gap: 2px; padding: 8px 12px; border-radius: var(--r-md); }
+.su-chip-img { width: 48px; height: 48px; object-fit: contain; filter: drop-shadow(0 2px 3px color-mix(in oklab, var(--ink) 25%, transparent)); }

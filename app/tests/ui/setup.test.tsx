@@ -115,4 +115,44 @@ describe('setup wizard', () => {
     expect(pays['Take out trash']).toBe(100)
     expect(pays['Make your bed']).toBe(0)
   })
+
+  it('needs a complete, matching confirmation before the PIN is accepted', async () => {
+    await mount()
+    type('Family name', 'The Tests')
+    next()
+    const btn = screen.getByRole('button', { name: 'Next' })
+    type('PIN', '1234')
+    expect(btn).toBeDisabled()
+    expect(screen.queryByRole('alert')).toBeNull()
+    type('Confirm PIN', '123')
+    expect(btn).toBeDisabled()
+    type('Confirm PIN', '1234')
+    expect(btn).toBeEnabled()
+  })
+
+  it('disables unticked chores at the cap of 10', async () => {
+    await mount()
+    await toPinDone()
+    passCode()
+    type('Name of kid 1', 'Nolan')
+    next()
+    next()
+    for (const n of [/Homework folder/, /Take out trash/, /Set the table/, /Water the plants/, /Help with laundry/]) {
+      fireEvent.click(screen.getByRole('checkbox', { name: n }))
+    }
+    expect(screen.getByRole('checkbox', { name: /Tidy your room/ })).toBeDisabled()
+    expect(screen.getByRole('checkbox', { name: /Read 20 minutes/ })).toBeDisabled()
+    expect(screen.getByRole('checkbox', { name: /Make your bed/ })).toBeEnabled()
+  })
+
+  it('regenerates the recovery code and resets the checkbox after Back to the PIN', async () => {
+    await mount()
+    await toPinDone()
+    const first = screen.getByLabelText('Recovery code value').textContent
+    fireEvent.click(screen.getByRole('checkbox', { name: 'I wrote it down' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+    next()
+    expect(screen.getByLabelText('Recovery code value').textContent).not.toBe(first)
+    expect(screen.getByRole('checkbox', { name: 'I wrote it down' })).not.toBeChecked()
+  })
 })

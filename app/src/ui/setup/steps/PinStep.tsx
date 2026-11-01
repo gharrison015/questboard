@@ -1,14 +1,9 @@
-import { isValidPin } from '../../../security/pin'
 import type { StepProps } from './types'
 
 const digits = (v: string): string => v.replace(/\D/g, '').slice(0, 6)
 
-export function pinMismatch(pin: string, again: string): boolean {
-  return again.length >= pin.length && again !== pin
-}
-
 export function PinStep({ state, set }: StepProps) {
-  const mismatch = isValidPin(state.pin) && pinMismatch(state.pin, state.pinAgain)
+  const mismatch = state.pinAgain.length > 0 && state.pinAgain.length >= state.pin.length && state.pinAgain !== state.pin
   return (
     <>
       <h2 className="su-title">Choose a parent PIN</h2>

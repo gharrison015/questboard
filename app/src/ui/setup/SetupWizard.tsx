@@ -1,4 +1,5 @@
 import { useLayoutEffect, useState } from 'react'
+import { LimitError } from '../../engine/reducer'
 import { isValidPin, makeRecoveryCode } from '../../security/pin'
 import { useActions } from '../../state/store'
 import { Button } from '../primitives/Button'
@@ -8,7 +9,7 @@ import { CodeStep } from './steps/CodeStep'
 import { DoneStep } from './steps/DoneStep'
 import { KidsStep } from './steps/KidsStep'
 import { MoneyStep } from './steps/MoneyStep'
-import { PinStep, pinMismatch } from './steps/PinStep'
+import { PinStep } from './steps/PinStep'
 import { RoutinesStep } from './steps/RoutinesStep'
 import { WelcomeStep } from './steps/WelcomeStep'
 import '../../styles/settings.css'
@@ -20,10 +21,16 @@ type Screen = (typeof SCREENS)[number]
 const DOTS = 7
 const dotFor = (i: number): number => (i >= 2 ? i - 1 : i)
 
+function limitText(err: LimitError): string {
+  if (err.limit === 'kids') return 'The free plan has two kids. Go back and remove one.'
+  if (err.limit === 'chores') return 'That is more chores than the free plan allows. Go back and untick some.'
+  return err.message
+}
+
 function valid(screen: Screen, s: WizardState): boolean {
   switch (screen) {
     case 'welcome': return s.familyName.trim() !== ''
-    case 'pin': return isValidPin(s.pin) && !pinMismatch(s.pin, s.pinAgain)
+    case 'pin': return isValidPin(s.pin) && s.pin === s.pinAgain
     case 'code': return s.wrote
     case 'kids': return s.kids.length > 0 && s.kids.every((k) => k.name.trim() !== '')
     default: return true
@@ -52,7 +59,10 @@ export function SetupWizard() {
     setError('')
     buildFamily(s)
       .then((f) => createFamily(f))
-      .catch(() => { setError('Could not save your setup. Try again.'); setBusy(false) })
+      .catch((err: unknown) => {
+        setError(err instanceof LimitError ? limitText(err) : 'Could not save your setup. Try again.')
+        setBusy(false)
+      })
   }
 
   const props = { state: s, set }
