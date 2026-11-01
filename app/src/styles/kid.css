@@ -481,15 +481,15 @@
   .kb-wk-head { flex-direction: column; justify-content: center; gap: 0; }
   .kb-wk-rows .kb-row {
     display: grid;
-    grid-template-columns: auto 1fr auto;
-    grid-template-areas: "ico pay box" "label label label";
+    grid-template-columns: 1fr auto;
+    grid-template-areas: "ico box" "pay pay" "label label";
     align-items: center;
     gap: 2px 4px;
     min-height: 0;
     padding: 4px;
   }
   .kb-wk-rows .kb-row-ico { grid-area: ico; width: 32px; height: 32px; }
-  .kb-wk-rows .kb-pay { grid-area: pay; justify-self: end; font-size: 0.75rem; }
+  .kb-wk-rows .kb-pay { grid-area: pay; justify-self: start; font-size: 0.75rem; }
   .kb-wk-rows .kb-box { grid-area: box; width: 24px; height: 24px; border-width: 2px; }
   .kb-wk-rows .kb-row-label {
     grid-area: label;
@@ -660,7 +660,7 @@
   100% { transform: scale(1); }
 }
 .kb-buddytile {
-  width: 100%; min-height: 96px; min-width: 96px; padding: 6px;
+  width: 100%; min-height: 112px; min-width: 96px; padding: 6px; overflow: hidden;
   display: flex; flex-direction: column; align-items: center; gap: 2px;
   border: 2px solid transparent; border-radius: var(--r-md);
   background: var(--card-2); color: var(--ink); cursor: pointer;
@@ -670,7 +670,10 @@
   width: 56px; height: 56px; object-fit: contain;
   filter: drop-shadow(0 4px 6px color-mix(in oklab, var(--ink) 25%, transparent));
 }
-.kb-buddytile-name { font-weight: 700; font-size: 0.8125rem; }
+.kb-buddytile-name {
+  font-weight: 700; font-size: 0.8125rem; max-width: 100%;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .kb-buddytile-tag { font-size: 0.75rem; font-weight: 800; color: var(--ink-2); }
 .kb-buddytile:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) {

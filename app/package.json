@@ -10,7 +10,9 @@
     "preview": "vite preview",
     "test": "vitest run",
     "e2e": "playwright test",
-    "contrast": "node scripts/contrast.mjs"
+    "contrast": "node scripts/contrast.mjs",
+    "shots": "node e2e/shots.mjs",
+    "check": "npm run test && npm run contrast && npm run build"
   },
   "dependencies": {
     "@fontsource/fredoka": "^5.3.0",
@@ -22,6 +24,7 @@
     "vite-plugin-pwa": "^2.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "1.61.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.3",
     "@types/node": "^24.19.2",

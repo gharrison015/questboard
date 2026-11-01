@@ -47,12 +47,12 @@
 
 /* Rows */
 .pr-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
-.pr-row { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+.pr-row { display: flex; align-items: center; gap: 8px; min-height: 48px; }
 .pr-row-text { flex: 1; min-width: 0; display: grid; }
 .pr-row-main { flex: 1; min-width: 0; font-weight: 700; overflow-wrap: anywhere; }
 .pr-row-sub { color: var(--ink-3); font-size: 0.875rem; }
 .pr-struck { text-decoration: line-through; color: var(--ink-3); }
-.qb-btn.pr-dense { min-height: 44px; padding: 0 14px; }
+.qb-btn.pr-dense { min-height: 48px; padding: 0 14px; }
 
 .pr-note { display: flex; align-items: center; gap: 8px; margin: 0; padding: 8px 12px; border: 1px solid var(--warn); border-radius: var(--r-md); color: var(--warn); font-weight: 700; }
 .pr-note span { flex: 1; }

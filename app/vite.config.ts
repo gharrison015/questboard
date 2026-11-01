@@ -19,7 +19,10 @@ export default defineConfig({
       manifest: {
         name: 'QuestBoard',
         short_name: 'QuestBoard',
+        scope: '/questboard/',
+        start_url: '/questboard/',
         display: 'standalone',
+        orientation: 'any',
         background_color: '#fffaf3',
         theme_color: '#ff7a3d',
         icons: [
