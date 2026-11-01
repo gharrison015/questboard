@@ -21,7 +21,7 @@ export function recordSuccess(): LockoutState {
   return { failures: 0, lockedUntil: null }
 }
 
-/** Checks the lock first, so a correct PIN during lockout is ignored. */
+/** Every unlock must go through this; callers must persist the returned state with saveLockout. A correct PIN during lockout is ignored. */
 export function tryUnlock(
   pinOk: boolean,
   state: LockoutState,

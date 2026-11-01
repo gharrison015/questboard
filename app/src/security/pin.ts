@@ -22,7 +22,7 @@ export function isValidPin(pin: string): boolean {
 }
 
 export function normalizeRecoveryCode(code: string): string {
-  return code.replace(/-/g, '').trim().toUpperCase()
+  return code.replace(/[\s-]/g, '').toUpperCase()
 }
 
 export function makeRecoveryCode(): string {

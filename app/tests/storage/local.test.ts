@@ -4,14 +4,15 @@ import { LocalAdapter } from '../../src/storage/local'
 import { InMemoryAdapter } from '../../src/storage/memory'
 import { DEFAULT_DEVICE, EMPTY_LOCKOUT, type StorageAdapter } from '../../src/storage/adapter'
 import { exportFamily, parseImport } from '../../src/storage/exportImport'
+import { hashPin, makeSalt, normalizeRecoveryCode } from '../../src/security/pin'
 import type { QBEvent } from '../../src/engine/types'
 import { ev, makeFamily, nolan } from '../fixtures'
 
 function events(): QBEvent[] {
   return [
-    ev({ type: 'deduction', kidId: nolan, amount: 50, reasonId: 'r-yelling' } as never, '2026-10-02T10:00:00.000Z'),
-    ev({ type: 'deduction', kidId: nolan, amount: 50, reasonId: 'r-yelling' } as never, '2026-10-01T10:00:00.000Z'),
-    ev({ type: 'deduction', kidId: nolan, amount: 50, reasonId: 'r-yelling' } as never, '2026-10-03T10:00:00.000Z'),
+    ev({ type: 'deduction.logged', kidId: nolan, reasonId: 'r-yelling', amount: 50, date: '2026-10-02' }, '2026-10-02T10:00:00.000Z'),
+    ev({ type: 'deduction.logged', kidId: nolan, reasonId: 'r-yelling', amount: 50, date: '2026-10-01' }, '2026-10-01T10:00:00.000Z'),
+    ev({ type: 'deduction.logged', kidId: nolan, reasonId: 'r-yelling', amount: 50, date: '2026-10-03' }, '2026-10-03T10:00:00.000Z'),
   ]
 }
 
@@ -59,6 +60,23 @@ contract('LocalAdapter', () => {
 contract('InMemoryAdapter', () => new InMemoryAdapter())
 
 describe('export and import', () => {
+  it('never contains the plaintext PIN or recovery code, and hashes are 64-char hex', async () => {
+    const pin = '482916'
+    const code = 'QWER-7TYU'
+    const salt = makeSalt()
+    const fam = makeFamily({
+      pinSalt: salt,
+      pinHash: await hashPin(pin, salt),
+      recoveryHash: await hashPin(normalizeRecoveryCode(code), salt),
+    })
+    const json = exportFamily(fam, events())
+    expect(json).not.toContain(pin)
+    expect(json).not.toContain(code)
+    expect(json).not.toContain(normalizeRecoveryCode(code))
+    const out = JSON.parse(json) as { family: { pinHash: string; recoveryHash: string } }
+    expect(out.family.pinHash).toMatch(/^[0-9a-f]{64}$/)
+    expect(out.family.recoveryHash).toMatch(/^[0-9a-f]{64}$/)
+  })
   it('round-trips through parseImport', () => {
     const fam = makeFamily()
     const evs = events()

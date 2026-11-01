@@ -51,6 +51,7 @@ describe('pin', () => {
   })
   it('recovery codes hash the same regardless of case and dash', async () => {
     expect(normalizeRecoveryCode('abcd-2345')).toBe('ABCD2345')
+    expect(normalizeRecoveryCode('abcd 2345')).toBe('ABCD2345')
     expect(await hashPin(normalizeRecoveryCode('abcd-2345'), 's')).toBe(
       await hashPin(normalizeRecoveryCode('ABCD2345'), 's'),
     )

@@ -39,8 +39,8 @@ export class LocalAdapter implements StorageAdapter {
     const db = await this.db()
     const family = (await db.get('family', 'current')) ?? null
     const events = sortEvents(await db.getAll('events'))
-    const lockout = ((await db.get('meta', 'lockout')) as LockoutState | undefined) ?? EMPTY_LOCKOUT
-    const device = ((await db.get('meta', 'device')) as DeviceSettings | undefined) ?? DEFAULT_DEVICE
+    const lockout = ((await db.get('meta', 'lockout')) as LockoutState | undefined) ?? { ...EMPTY_LOCKOUT }
+    const device = ((await db.get('meta', 'device')) as DeviceSettings | undefined) ?? { ...DEFAULT_DEVICE }
     return { family, events, lockout, device }
   }
 
