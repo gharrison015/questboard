@@ -1,0 +1,181 @@
+/* QuestBoard design tokens. Appearance blocks set shared values, buddy blocks set the accent,
+   bright-plus-buddy blocks tint the background. scripts/contrast.mjs checks every combination. */
+
+:root {
+  --r-lg: 24px;
+  --r-md: 18px;
+  --r-sm: 12px;
+  --font-display: 'Fredoka', 'Nunito', system-ui, sans-serif;
+  --font-body: 'Nunito', system-ui, sans-serif;
+}
+
+:root[data-appearance="bright"] {
+  --bg: #fffaf3;
+  --bg-wash: #fffaf3;
+  --card: #ffffff;
+  --card-2: #fff4e6;
+  --ink: #1b1f3a;
+  --ink-2: #4a5080;
+  --ink-3: #5d6490;
+  --line: #e8e2d6;
+  --good: #1f8a4c;
+  --warn: #b26a00;
+  --bad: #c62828;
+  --save: #1f8a4c;
+  --spend: #2f5fd0;
+  --give: #b0388a;
+}
+
+:root[data-appearance="calm"] {
+  --bg: #ffffff;
+  --bg-wash: #ffffff;
+  --card: #f4f5f9;
+  --card-2: #e9ebf3;
+  --ink: #1b1f3a;
+  --ink-2: #4a5080;
+  --ink-3: #5d6490;
+  --line: #dfe2ee;
+  --good: #1f8a4c;
+  --warn: #b26a00;
+  --bad: #c62828;
+  --save: #1f8a4c;
+  --spend: #2f5fd0;
+  --give: #b0388a;
+}
+
+:root[data-appearance="dark"] {
+  --bg: #0f1230;
+  --bg-wash: #0f1230;
+  --card: #1d2250;
+  --card-2: #262c62;
+  --ink: #f4f6ff;
+  --ink-2: #c3c9ef;
+  --ink-3: #a4abdc;
+  --line: #363d78;
+  --good: #5fd48a;
+  --warn: #ffb74d;
+  --bad: #ff8a80;
+  --save: #5fd48a;
+  --spend: #8fb0ff;
+  --give: #ff9ad5;
+}
+
+:root[data-buddy="truck"] {
+  --accent: #ff7a3d;
+  --accent-ink: #1b1f3a;
+}
+
+:root[data-buddy="unicorn"] {
+  --accent: #ff7ac6;
+  --accent-ink: #1b1f3a;
+}
+
+:root[data-buddy="tamer"] {
+  --accent: #ffd23f;
+  --accent-ink: #1b1f3a;
+}
+
+:root[data-buddy="dino"] {
+  --accent: #3ddc84;
+  --accent-ink: #1b1f3a;
+}
+
+:root[data-buddy="ocean"] {
+  --accent: #39b7ff;
+  --accent-ink: #1b1f3a;
+}
+
+:root[data-buddy="jungle"] {
+  --accent: #2e7d32;
+  --accent-ink: #ffffff;
+}
+
+:root[data-buddy="race"] {
+  --accent: #f2b400;
+  --accent-ink: #1b1f3a;
+}
+
+:root[data-buddy="candy"] {
+  --accent: #ff5d8f;
+  --accent-ink: #1b1f3a;
+}
+
+:root[data-buddy="space"] {
+  --accent: #4a5be8;
+  --accent-ink: #ffffff;
+}
+
+:root[data-buddy="hero"] {
+  --accent: #d32f2f;
+  --accent-ink: #ffffff;
+}
+
+:root[data-buddy="royal"] {
+  --accent: #8a3ff0;
+  --accent-ink: #ffffff;
+}
+
+:root[data-buddy="fae"] {
+  --accent: #ff7ac6;
+  --accent-ink: #1b1f3a;
+}
+
+:root[data-appearance="bright"][data-buddy="truck"] {
+  --bg: color-mix(in oklab, #ff7a3d 8%, #fffaf3);
+  --bg-wash: color-mix(in oklab, #ff7a3d 18%, #fffaf3);
+}
+
+:root[data-appearance="bright"][data-buddy="unicorn"] {
+  --bg: color-mix(in oklab, #ff7ac6 8%, #fffaf3);
+  --bg-wash: color-mix(in oklab, #ff7ac6 18%, #fffaf3);
+}
+
+:root[data-appearance="bright"][data-buddy="tamer"] {
+  --bg: color-mix(in oklab, #ffd23f 8%, #fffaf3);
+  --bg-wash: color-mix(in oklab, #ffd23f 18%, #fffaf3);
+}
+
+:root[data-appearance="bright"][data-buddy="dino"] {
+  --bg: color-mix(in oklab, #3ddc84 8%, #fffaf3);
+  --bg-wash: color-mix(in oklab, #3ddc84 18%, #fffaf3);
+}
+
+:root[data-appearance="bright"][data-buddy="ocean"] {
+  --bg: color-mix(in oklab, #39b7ff 8%, #fffaf3);
+  --bg-wash: color-mix(in oklab, #39b7ff 18%, #fffaf3);
+}
+
+:root[data-appearance="bright"][data-buddy="jungle"] {
+  --bg: color-mix(in oklab, #2e7d32 8%, #fffaf3);
+  --bg-wash: color-mix(in oklab, #2e7d32 18%, #fffaf3);
+}
+
+:root[data-appearance="bright"][data-buddy="race"] {
+  --bg: color-mix(in oklab, #f2b400 8%, #fffaf3);
+  --bg-wash: color-mix(in oklab, #f2b400 18%, #fffaf3);
+}
+
+:root[data-appearance="bright"][data-buddy="candy"] {
+  --bg: color-mix(in oklab, #ff5d8f 8%, #fffaf3);
+  --bg-wash: color-mix(in oklab, #ff5d8f 18%, #fffaf3);
+}
+
+:root[data-appearance="bright"][data-buddy="space"] {
+  --bg: color-mix(in oklab, #4a5be8 8%, #fffaf3);
+  --bg-wash: color-mix(in oklab, #4a5be8 18%, #fffaf3);
+}
+
+:root[data-appearance="bright"][data-buddy="hero"] {
+  --bg: color-mix(in oklab, #d32f2f 8%, #fffaf3);
+  --bg-wash: color-mix(in oklab, #d32f2f 18%, #fffaf3);
+}
+
+:root[data-appearance="bright"][data-buddy="royal"] {
+  --bg: color-mix(in oklab, #8a3ff0 8%, #fffaf3);
+  --bg-wash: color-mix(in oklab, #8a3ff0 18%, #fffaf3);
+}
+
+:root[data-appearance="bright"][data-buddy="fae"] {
+  --bg: color-mix(in oklab, #ff7ac6 8%, #fffaf3);
+  --bg-wash: color-mix(in oklab, #ff7ac6 18%, #fffaf3);
+}
