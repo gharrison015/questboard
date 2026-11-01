@@ -1,7 +1,9 @@
 /* First-run setup. Tokens only. The card scrolls inside itself, never the page. */
 .su-page {
   display: grid;
+  grid-template-rows: minmax(0, 1fr);
   place-items: center;
+  height: 100vh;
   height: 100dvh;
   padding: 12px;
   background: var(--bg);
@@ -13,7 +15,10 @@
   gap: 12px;
   width: 100%;
   max-width: 560px;
-  max-height: 100%;
+  /* Not max-height: 100%. Safari leaves a percentage unresolved here, so the card
+     grew past the screen and Back and Next fell off the bottom. Page padding is 12px a side. */
+  max-height: calc(100vh - 24px);
+  max-height: calc(100dvh - 24px);
   padding: 16px;
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
@@ -31,10 +36,11 @@
 .su-code { overflow-wrap: anywhere; user-select: all; }
 .su-kid { gap: 12px; }
 .su-chore { gap: 12px; }
+.su-chore-bulk { display: flex; justify-content: flex-start; }
 .su-chore-text { display: grid; gap: 2px; min-width: 0; }
 .su-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .su-buddies { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; margin: 0; padding: 0; list-style: none; }
 .su-buddy { display: grid; justify-items: center; gap: 4px; font-weight: 800; }
-.su-buddy img { object-fit: contain; }
+.su-buddy img { object-fit: contain; filter: var(--buddy-edge) drop-shadow(0 4px 6px color-mix(in oklab, var(--ink) 25%, transparent)); }
 .su-chip { flex-direction: column; justify-content: center; gap: 2px; padding: 8px 12px; border-radius: var(--r-md); }
-.su-chip-img { width: 48px; height: 48px; object-fit: contain; filter: drop-shadow(0 2px 3px color-mix(in oklab, var(--ink) 25%, transparent)); }
+.su-chip-img { width: 48px; height: 48px; object-fit: contain; filter: var(--buddy-edge) drop-shadow(0 2px 3px color-mix(in oklab, var(--ink) 25%, transparent)); }

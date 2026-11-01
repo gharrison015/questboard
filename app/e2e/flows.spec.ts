@@ -20,6 +20,28 @@ test('first run through the wizard lands on the kid board showing Nolan', async 
   await expect(page.getByRole('button', { name: 'Makenna' })).toBeVisible()
 })
 
+test('starter chores: Select all fills to the free limit, Clear all empties, Next stays on screen', async ({ page }) => {
+  await page.goto('./')
+  await page.getByLabel('Family name').fill('The Harrisons')
+  await page.getByRole('button', { name: 'Next' }).click()
+  await page.getByLabel('PIN', { exact: true }).fill('1234')
+  await page.getByLabel('Confirm PIN').fill('1234')
+  await page.getByRole('button', { name: 'Next' }).click()
+  await page.getByRole('checkbox').check()
+  await page.getByRole('button', { name: 'Next' }).click()
+  await page.getByLabel('Name of kid 1').fill('Nolan')
+  await page.getByRole('button', { name: 'Add another kid' }).click()
+  await page.getByLabel('Name of kid 2').fill('Makenna')
+  await page.getByRole('button', { name: 'Next' }).click()
+  await page.getByRole('radio', { name: /Both/ }).check({ force: true })
+  await page.getByRole('button', { name: 'Next' }).click()
+  await page.getByRole('button', { name: 'Select all' }).click()
+  await expect(page.getByRole('checkbox', { checked: true })).toHaveCount(10)
+  await expect(page.getByRole('button', { name: 'Next' })).toBeInViewport()
+  await page.getByRole('button', { name: 'Clear all' }).click()
+  await expect(page.getByRole('checkbox', { checked: true })).toHaveCount(0)
+})
+
 test('checking a chore updates the counter', async ({ page }, info) => {
   skipOnTv(info.project.name)
   await setupFamily(page, KIDS)

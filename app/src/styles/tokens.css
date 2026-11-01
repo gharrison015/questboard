@@ -7,6 +7,11 @@
   --r-sm: 12px;
   --font-display: 'Fredoka', 'Nunito', system-ui, sans-serif;
   --font-body: 'Nunito', system-ui, sans-serif;
+  /* Sticker edge on small buddy art (picker tiles, chips, shop, avatars) so light buddies
+     stand off light cards. Put it first in a filter list, before the soft drop shadow. */
+  --buddy-edge-c: color-mix(in oklab, var(--ink) 45%, transparent);
+  --buddy-edge: drop-shadow(1px 0 0 var(--buddy-edge-c)) drop-shadow(-1px 0 0 var(--buddy-edge-c))
+    drop-shadow(0 1px 0 var(--buddy-edge-c)) drop-shadow(0 -1px 0 var(--buddy-edge-c));
 }
 
 :root[data-appearance="bright"] {

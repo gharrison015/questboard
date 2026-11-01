@@ -424,6 +424,8 @@ body {
   border-radius: 50%;
   object-fit: contain;
   background: var(--card-2);
+  outline: 1px solid var(--buddy-edge-c);
+  outline-offset: -1px;
 }
 
 .qb-body {

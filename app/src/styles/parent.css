@@ -69,7 +69,7 @@
 .pr-tile[data-state="using"] { border-color: var(--ink); }
 .pr-tile[data-state="locked"] .pr-artbox { opacity: 0.7; }
 .pr-artbox { width: 96px; height: 96px; display: grid; place-items: center; overflow: hidden; }
-.pr-art { width: 96px; height: 96px; object-fit: contain; display: block; }
+.pr-art { width: 96px; height: 96px; object-fit: contain; display: block; filter: var(--buddy-edge) drop-shadow(0 4px 6px color-mix(in oklab, var(--ink) 25%, transparent)); }
 .pr-tile-name { margin: 0; font-weight: 800; font-size: 0.875rem; overflow-wrap: anywhere; }
 .pr-tile-state { margin: 0; color: var(--ink-3); font-weight: 700; font-size: 0.875rem; }
 .pr-stickers { margin: 0; min-height: 96px; display: grid; place-items: center; font-size: 28px; line-height: 1.3; overflow-wrap: anywhere; }

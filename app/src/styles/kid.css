@@ -677,7 +677,7 @@
 .kb-buddytile[aria-pressed="true"] { border-color: var(--ink); }
 .kb-buddytile-img {
   width: 56px; height: 56px; object-fit: contain;
-  filter: drop-shadow(0 4px 6px color-mix(in oklab, var(--ink) 25%, transparent));
+  filter: var(--buddy-edge) drop-shadow(0 4px 6px color-mix(in oklab, var(--ink) 25%, transparent));
 }
 .kb-buddytile-name {
   font-weight: 700; font-size: 0.8125rem; max-width: 100%;
