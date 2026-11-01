@@ -7,7 +7,7 @@ export function currentWeekStart(family: Family, now: Date): DateKey {
   return weekStartKey(dateKey(now), family.money.weekStartDay)
 }
 
-/** The event's own date, or the local day it was recorded when it carries none. */
+/** Dated chore, routine, deduction and earn-back events count as activity; jar events do not. */
 function activityDate(e: QBEvent): DateKey | undefined {
   switch (e.type) {
     case 'chore.checked':
@@ -18,18 +18,12 @@ function activityDate(e: QBEvent): DateKey | undefined {
     case 'deduction.logged':
     case 'earnback.earned':
       return e.date
-    case 'jar.allocated':
-    case 'jar.paidOut':
-    case 'jar.donated':
-    case 'jar.gifted':
-      return dateKey(new Date(e.at))
     default:
       return undefined
   }
 }
 
 function belongsToKid(e: QBEvent, kidId: string): boolean {
-  if (e.type === 'jar.gifted') return e.fromKidId === kidId || e.toKidId === kidId
   return 'kidId' in e && e.kidId === kidId
 }
 

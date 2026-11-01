@@ -53,4 +53,18 @@ describe('closeWeeks', () => {
     expect(lastWeekMissedApprovals(f, f.kids[0], events, now)).toBe(1)
     expect(lastWeekMissedApprovals(makeFamily(), f.kids[0], events, now)).toBe(0)
   })
+
+  it('jar-only weeks still close inactive at zero', () => {
+    const events = [ev({ type: 'jar.allocated', kidId: nolan, jar: 'save', amount: 100 }, new Date(2026, 9, 7, 10).toISOString())]
+    const out = dueWeekCloses(family, events, now)
+    const w = out.find((e) => e.type === 'week.closed' && e.kidId === nolan && e.weekStart === '2026-10-04')
+    expect(w).toMatchObject({ balance: 0, inactive: true })
+  })
+
+  it('at 00:30 Sunday the week starting 10-25 closes and 11-01 does not', () => {
+    const early = new Date(2026, 10, 1, 0, 30)
+    const weeks = dueWeekCloses(family, [], early).flatMap((e) => (e.type === 'week.closed' && e.kidId === nolan ? [e.weekStart] : []))
+    expect(weeks).toContain('2026-10-25')
+    expect(weeks).not.toContain('2026-11-01')
+  })
 })

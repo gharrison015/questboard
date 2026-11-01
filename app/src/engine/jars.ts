@@ -27,6 +27,7 @@ export function jars(kidId: string, events: QBEvent[]): Jars {
           j[e.jar] += e.amount
         }
         break
+      // The action layer must reject a gift larger than the giver's give jar.
       case 'jar.gifted':
         if (e.fromKidId === kidId) take('give', e.amount)
         if (e.toKidId === kidId) j.save += e.amount
