@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { StoreProvider } from '../../src/state/store'
 import { AppShell } from '../../src/ui/shell/AppShell'
@@ -80,17 +80,78 @@ describe('Ruling 26: forgotten PIN from the gate, with no session', () => {
     expect(await screen.findByRole('region', { name: 'Log a deduction' })).toBeInTheDocument()
   })
 
-  it('Erase and start over needs ERASE typed and lands on the setup wizard', async () => {
-    const adapter = await mount()
+  it('Erase and start over needs ERASE, a second confirm and a countdown, then lands on the setup wizard', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      const adapter = await mount()
+      const dlg = await openRecovery()
+      fireEvent.click(within(dlg).getByRole('button', { name: /Erase and start over/ }))
+      const erase = await screen.findByRole('dialog', { name: 'Erase and start over' })
+      const cont = within(erase).getByRole('button', { name: 'Continue' })
+      expect(cont).toBeDisabled()
+      fill('Type ERASE', 'erase', erase)
+      expect(cont).toBeDisabled()
+      fill('Type ERASE', 'ERASE', erase)
+      fireEvent.click(cont)
+      expect(erase).toHaveTextContent('This deletes every chore, deduction and dollar for the whole family on this device.')
+      const btn = within(erase).getByRole('button', { name: 'Erase everything (5)' })
+      expect(btn).toBeDisabled()
+      fireEvent.click(btn)
+      expect((await adapter.load()).family).not.toBeNull()
+      await act(async () => { await vi.advanceTimersByTimeAsync(4_100) })
+      expect(within(erase).getByRole('button', { name: /Erase everything \(1\)/ })).toBeDisabled()
+      await act(async () => { await vi.advanceTimersByTimeAsync(1_000) })
+      const final = within(erase).getByRole('button', { name: 'Erase everything' })
+      expect(final).toBeEnabled()
+      fireEvent.click(final)
+      expect(await screen.findByRole('heading', { name: 'Welcome to QuestBoard' })).toBeInTheDocument()
+      const loaded = await adapter.load()
+      expect(loaded.family).toBeNull()
+      expect(loaded.events).toHaveLength(0)
+    } finally { vi.useRealTimers() }
+  })
+
+  it('Cancel on the confirm step returns to the PIN', async () => {
+    await mount()
     const dlg = await openRecovery()
     fireEvent.click(within(dlg).getByRole('button', { name: /Erase and start over/ }))
     const erase = await screen.findByRole('dialog', { name: 'Erase and start over' })
-    const btn = within(erase).getByRole('button', { name: 'Erase everything' })
-    expect(btn).toBeDisabled()
     fill('Type ERASE', 'ERASE', erase)
-    fireEvent.click(btn)
-    expect(await screen.findByRole('heading', { name: 'Welcome to QuestBoard' })).toBeInTheDocument()
-    expect((await adapter.load()).family).toBeNull()
+    fireEvent.click(within(erase).getByRole('button', { name: 'Continue' }))
+    fireEvent.click(within(erase).getByRole('button', { name: 'Cancel' }))
+    expect(await screen.findByRole('dialog', { name: 'Parent PIN' })).toBeInTheDocument()
+  })
+
+  it('Erase is disabled while the shared lockout is active', async () => {
+    const adapter = await mount()
+    await adapter.saveLockout({ failures: 0, lockedUntil: Date.now() + 60_000 })
+    cleanup()
+    render(<StoreProvider adapter={adapter}><AppShell /></StoreProvider>)
+    await screen.findByRole('banner')
+    const dlg = await openRecovery()
+    const link = within(dlg).getByRole('button', { name: /Erase and start over/ })
+    expect(link).toHaveAttribute('aria-disabled', 'true')
+    expect(link).toHaveTextContent(/Try again in \d+s/)
+    fireEvent.click(link)
+    expect(screen.queryByRole('dialog', { name: 'Erase and start over' })).toBeNull()
+    expect((await adapter.load()).family).not.toBeNull()
+  })
+
+  it('erasing leaves no parent session', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      const adapter = await mount()
+      const dlg = await openRecovery()
+      fireEvent.click(within(dlg).getByRole('button', { name: /Erase and start over/ }))
+      const erase = await screen.findByRole('dialog', { name: 'Erase and start over' })
+      fill('Type ERASE', 'ERASE', erase)
+      fireEvent.click(within(erase).getByRole('button', { name: 'Continue' }))
+      await act(async () => { await vi.advanceTimersByTimeAsync(5_100) })
+      fireEvent.click(within(erase).getByRole('button', { name: 'Erase everything' }))
+      await screen.findByRole('heading', { name: 'Welcome to QuestBoard' })
+      expect(screen.queryByRole('region', { name: 'Log a deduction' })).toBeNull()
+      expect((await adapter.load()).family).toBeNull()
+    } finally { vi.useRealTimers() }
   })
 
   it('the Forgot PIN link is a 48px target', async () => {

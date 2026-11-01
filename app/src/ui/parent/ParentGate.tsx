@@ -9,6 +9,7 @@ import { RecoveryForm } from './RecoveryForm'
 
 const MAX_DIGITS = 6
 const MIN_DIGITS = 4
+const ERASE_COUNTDOWN = 5
 
 export type GateMode = 'session' | 'confirm'
 
@@ -29,6 +30,8 @@ export function ParentGate({ open, mode = 'session', onClose, onSuccess }: Paren
   const toast = useToast()
   const [pane, setPane] = useState<Pane>('pin')
   const [typed, setTyped] = useState('')
+  const [confirming, setConfirming] = useState(false)
+  const [countdown, setCountdown] = useState(ERASE_COUNTDOWN)
   const [pin, setPin] = useState('')
   const [shake, setShake] = useState(false)
   const [wrong, setWrong] = useState(false)
@@ -37,8 +40,15 @@ export function ParentGate({ open, mode = 'session', onClose, onSuccess }: Paren
   const [clock, setClock] = useState(() => Date.now())
 
   useEffect(() => {
-    if (open) { setPin(''); setShake(false); setWrong(false); setPane('pin'); setTyped('') }
+    if (open) { setPin(''); setShake(false); setWrong(false); setPane('pin'); setTyped(''); setConfirming(false) }
   }, [open])
+
+  useEffect(() => {
+    if (pane !== 'erase' || !confirming) return
+    setCountdown(ERASE_COUNTDOWN)
+    const id = window.setInterval(() => setCountdown((c) => Math.max(0, c - 1)), 1000)
+    return () => window.clearInterval(id)
+  }, [pane, confirming])
 
   useEffect(() => {
     if (!open || lockout.lockedUntil === null) return
@@ -78,7 +88,7 @@ export function ParentGate({ open, mode = 'session', onClose, onSuccess }: Paren
   }
 
   const erase = (): void => {
-    if (typed !== 'ERASE') return
+    if (typed !== 'ERASE' || !confirming || countdown > 0 || isLocked(lockout, Date.now())) return
     eraseAll()
       .then(() => { onClose(); toast.show('Everything was erased') })
       .catch(() => toast.show('Could not erase. Try again.'))
@@ -92,7 +102,13 @@ export function ParentGate({ open, mode = 'session', onClose, onSuccess }: Paren
         <div className="qb-gate-recover">
           <h2 className="qb-gate-title">Forgot PIN</h2>
           <RecoveryForm codeDisplay="inline" onDone={() => setPane('pin')} />
-          <button type="button" className="qb-gate-link" onClick={() => { setTyped(''); setPane('erase') }}>Lost the recovery code too? Erase and start over</button>
+          {locked ? (
+            <button type="button" className="qb-gate-link" aria-disabled="true" style={{ opacity: 0.6 }}>
+              Lost the recovery code too? Erase and start over. Try again in {secondsLeft}s
+            </button>
+          ) : (
+            <button type="button" className="qb-gate-link" onClick={() => { setTyped(''); setConfirming(false); setPane('erase') }}>Lost the recovery code too? Erase and start over</button>
+          )}
           <div className="qb-gate-actions">
             <Button variant="quiet" onClick={() => setPane('pin')}>Back to PIN</Button>
           </div>
@@ -101,16 +117,31 @@ export function ParentGate({ open, mode = 'session', onClose, onSuccess }: Paren
     )
   }
   if (pane === 'erase') {
+    const cancel = (): void => { setTyped(''); setConfirming(false); setPane('pin') }
     return (
       <Modal open={open} title="Erase and start over" onClose={onClose} className="qb-gate">
         <div className="qb-gate-recover">
           <h2 className="qb-gate-title">Erase and start over</h2>
-          <p className="st-hint">This removes the family, history and settings from this device and returns to setup. It cannot be undone. Type ERASE to confirm.</p>
-          <input className="st-input" aria-label="Type ERASE" value={typed} autoComplete="off" onChange={(e) => setTyped(e.target.value)} />
-          <div className="qb-gate-actions">
-            <Button variant="quiet" onClick={() => setPane('recover')}>Back</Button>
-            <Button variant="danger" disabled={typed !== 'ERASE'} onClick={erase}>Erase everything</Button>
-          </div>
+          {confirming ? (
+            <>
+              <p className="st-hint">This deletes every chore, deduction and dollar for the whole family on this device. If you can, export a backup from Settings first.</p>
+              <div className="qb-gate-actions">
+                <Button variant="quiet" onClick={cancel}>Cancel</Button>
+                <Button variant="danger" disabled={countdown > 0 || locked} onClick={erase}>
+                  {countdown > 0 ? `Erase everything (${countdown})` : 'Erase everything'}
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="st-hint">This removes the family, history and settings from this device and returns to setup. It cannot be undone. Type ERASE to continue.</p>
+              <input className="st-input" aria-label="Type ERASE" value={typed} autoComplete="off" onChange={(e) => setTyped(e.target.value)} />
+              <div className="qb-gate-actions">
+                <Button variant="quiet" onClick={cancel}>Cancel</Button>
+                <Button variant="danger" disabled={typed !== 'ERASE' || locked} onClick={() => setConfirming(true)}>Continue</Button>
+              </div>
+            </>
+          )}
         </div>
       </Modal>
     )
