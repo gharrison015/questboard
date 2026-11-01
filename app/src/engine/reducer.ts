@@ -6,8 +6,10 @@ import type {
 } from './types'
 
 export class LimitError extends Error {
-  constructor(public limit: 'kids' | 'chores' | 'theme') {
+  limit: 'kids' | 'chores' | 'theme'
+  constructor(limit: 'kids' | 'chores' | 'theme') {
     super(`Limit reached: ${limit}`)
+    this.limit = limit
     this.name = 'LimitError'
   }
 }

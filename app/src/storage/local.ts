@@ -19,7 +19,11 @@ interface QBSchema extends DBSchema {
 export class LocalAdapter implements StorageAdapter {
   private dbPromise: Promise<IDBPDatabase<QBSchema>> | null = null
 
-  constructor(private readonly name = 'questboard') {}
+  private readonly name: string
+
+  constructor(name = 'questboard') {
+    this.name = name
+  }
 
   private db(): Promise<IDBPDatabase<QBSchema>> {
     if (!this.dbPromise) {

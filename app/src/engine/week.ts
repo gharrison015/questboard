@@ -77,9 +77,9 @@ export function choreDayStateLive(
   let decision: 'verified' | 'rejected' | undefined
   for (let i = lastIdx + 1; i < live.length; i++) {
     const e = live[i]
+    if (e.type !== 'chore.verified' && e.type !== 'chore.rejected') continue
     if (e.kidId !== kid.id || e.choreId !== chore.id || e.date !== date) continue
-    if (e.type === 'chore.verified') decision = 'verified'
-    else if (e.type === 'chore.rejected') decision = 'rejected'
+    decision = e.type === 'chore.verified' ? 'verified' : 'rejected'
   }
   const verified = decision === 'verified'
   const rejected = decision === 'rejected'
