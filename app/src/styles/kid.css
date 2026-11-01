@@ -576,6 +576,9 @@
   box-shadow: var(--shadow);
 }
 :root[data-appearance="calm"] .kb-jarcard { box-shadow: none; border: 1px solid var(--line); }
+.kb-jar-save { --jar: var(--save); }
+.kb-jar-spend { --jar: var(--spend); }
+.kb-jar-give { --jar: var(--give); }
 .kb-jarcard-head { display: flex; align-items: center; gap: 8px; position: relative; }
 .kb-jarcard-ico { display: inline-flex; filter: drop-shadow(0 1px 1.5px color-mix(in oklab, var(--ink) 30%, transparent)); }
 .kb-jarcard-name { margin: 0; font-size: 1rem; color: var(--ink); }
@@ -606,10 +609,10 @@
 .kb-jarbtns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
 .kb-jarbtn {
   min-height: 48px;
-  border: 0;
   border-radius: var(--r-md);
-  background: var(--accent);
-  color: var(--accent-ink);
+  border: 1.5px solid var(--jar);
+  background: color-mix(in oklab, var(--jar) 14%, var(--card));
+  color: var(--jar);
   font-weight: 800;
   font-size: 0.9375rem;
   cursor: pointer;

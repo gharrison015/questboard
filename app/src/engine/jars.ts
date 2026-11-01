@@ -45,8 +45,9 @@ export function jars(kidId: string, events: QBEvent[]): Jars {
   return { ...j, unsplit: Math.max(0, closedTotal - allocatedTotal) }
 }
 
-export function allocationStep(_j: Jars, useCents: boolean): Cents {
-  return useCents ? 25 : 100
+/** 25 cents while the unsplit amount has a sub-dollar part, otherwise a dollar. */
+export function allocationStep(j: Jars): Cents {
+  return j.unsplit % 100 === 0 ? 100 : 25
 }
 
 export function canAllocate(j: Jars, amount: Cents): boolean {

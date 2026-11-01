@@ -20,6 +20,9 @@
   --line: #e8e2d6;
   --good: #16703a;
   --warn: #8a5000;
+  --coin: #f5b53f;
+  --coin-rim: #b9801f;
+  --coin-shine: #ffe9a8;
   --bad: #b71c1c;
   --save: #16703a;
   --spend: #2450b8;
@@ -37,6 +40,9 @@
   --line: #dfe2ee;
   --good: #16703a;
   --warn: #8a5000;
+  --coin: #f5b53f;
+  --coin-rim: #b9801f;
+  --coin-shine: #ffe9a8;
   --bad: #b71c1c;
   --save: #16703a;
   --spend: #2450b8;
@@ -54,6 +60,9 @@
   --line: #363d78;
   --good: #5fd48a;
   --warn: #ffb74d;
+  --coin: #f5b53f;
+  --coin-rim: #b9801f;
+  --coin-shine: #ffe9a8;
   --bad: #ff8a80;
   --save: #5fd48a;
   --spend: #8fb0ff;

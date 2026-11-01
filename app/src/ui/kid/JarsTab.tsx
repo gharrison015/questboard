@@ -5,7 +5,7 @@ import { newId } from '../../engine/ids'
 import { allocationStep, canAllocate } from '../../engine/jars'
 import { formatCents } from '../../engine/money'
 import type { JarKey, Kid, QBEvent } from '../../engine/types'
-import { useJars, useKidUsesCents } from '../../state/selectors'
+import { useJars } from '../../state/selectors'
 import { activeKids, useActions, useStore } from '../../state/store'
 import { Icon } from '../primitives/Icon'
 import { SectionHead } from '../primitives/SectionHead'
@@ -31,7 +31,6 @@ export function JarsTab({ kid }: { kid: Kid }) {
   const { append } = useActions()
   const toast = useToast()
   const j = useJars(kid)
-  const useCents = useKidUsesCents(kid)
   const [target, setTarget] = useState<Target | null>(null)
   const [drops, setDrops] = useState<Record<JarKey, number>>({ save: 0, spend: 0, give: 0 })
 
@@ -67,24 +66,32 @@ export function JarsTab({ kid }: { kid: Kid }) {
     if (!canAllocate({ ...j, unsplit: left }, amount)) return
     if (jar === 'give' && !chosen) return
     const at = new Date().toISOString()
-    const alloc: QBEvent = { id: newId(), at, type: 'jar.allocated', kidId: kid.id, jar, amount }
+    const groupId = jar === 'give' && sibling ? newId() : undefined
+    const alloc: QBEvent = { id: newId(), at, type: 'jar.allocated', kidId: kid.id, jar, amount, ...(groupId ? { groupId } : {}) }
     const out: QBEvent[] = [alloc]
     let text: string
     if (jar === 'give' && sibling) {
       // The coins pass through the Give jar, so the gift always draws on money that was split.
-      out.push({ id: newId(), at, type: 'jar.gifted', fromKidId: kid.id, toKidId: sibling.id, amount })
+      out.push({ id: newId(), at, type: 'jar.gifted', fromKidId: kid.id, toKidId: sibling.id, amount, groupId: groupId as string })
     }
     if (jar === 'save') text = `Saved ${amt(amount)}`
     else if (jar === 'spend') text = `Spending ${amt(amount)}`
     else text = `Giving ${amt(amount)} to ${targetName}`
     pending.current.set(alloc.id, amount)
-    void append(out)
-    toast.show(text)
-    setDrops((d) => ({ ...d, [jar]: d[jar] + 1 }))
+    append(out)
+      .then(() => {
+        toast.show(text)
+        setDrops((d) => ({ ...d, [jar]: d[jar] + 1 }))
+      })
+      .catch(() => {
+        pending.current.delete(alloc.id)
+        toast.show('Could not save that. Try again.')
+        setDrops((d) => ({ ...d }))
+      })
   }
 
-  const step = allocationStep(j, useCents)
   const left = remaining()
+  const step = allocationStep({ ...j, unsplit: left })
   const shown = Math.min(MAX_COINS, Math.floor(left / 100))
   const extra = Math.floor(left / 100) - shown
   const nextPay = dayFull(addDays(currentWeekStart(family, now), 7))
@@ -132,8 +139,8 @@ export function JarsTab({ kid }: { kid: Kid }) {
               ) : null}
               <div className="kb-jarbtns">
                 {buttons.map((b) => {
-                  const amount = b.amount === 'all' ? left : b.amount
-                  const ok = canAllocate({ ...j, unsplit: left }, amount) && (key !== 'give' || !!chosen)
+                  const want = b.amount === 'all' ? left : b.amount
+                  const ok = canAllocate({ ...j, unsplit: left }, want) && (key !== 'give' || !!chosen)
                   return (
                     <button
                       key={b.text}

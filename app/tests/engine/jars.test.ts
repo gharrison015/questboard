@@ -51,8 +51,8 @@ describe('jars', () => {
 
   it('allocation step and canAllocate', () => {
     const j = { save: 0, spend: 0, give: 0, unsplit: 300 }
-    expect(allocationStep(j, false)).toBe(100)
-    expect(allocationStep(j, true)).toBe(25)
+    expect(allocationStep(j)).toBe(100)
+    expect(allocationStep({ ...j, unsplit: 325 })).toBe(25)
     expect(canAllocate(j, 300)).toBe(true)
     expect(canAllocate(j, 325)).toBe(false)
     expect(canAllocate(j, 0)).toBe(false)

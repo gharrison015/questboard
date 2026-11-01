@@ -5,6 +5,7 @@ import { InMemoryAdapter } from '../../src/storage/memory'
 import { KidBoard } from '../../src/ui/kid/KidBoard'
 import { Toaster } from '../../src/ui/primitives/Toaster'
 import type { QBEvent } from '../../src/engine/types'
+import { jars } from '../../src/engine/jars'
 import { ev, makeFamily, makenna, nolan } from '../fixtures'
 
 function Board() {
@@ -12,10 +13,10 @@ function Board() {
   return kid ? <KidBoard kid={kid} /> : null
 }
 
-async function mount(balance: number, withCharity = false) {
-  const adapter = new InMemoryAdapter()
+async function mount(balance: number, withCharity = false, adapter = new InMemoryAdapter(), archiveSibling = false) {
   const family = makeFamily({ createdAt: '2026-11-01T00:00:00.000Z' })
   if (withCharity) family.kids[0].charity = { name: 'Animal Rescue' }
+  if (archiveSibling) family.kids[1].archived = true
   await adapter.saveFamily(family)
   const closed: QBEvent[] = balance > 0
     ? [ev({ type: 'week.closed', kidId: nolan, weekStart: '2026-10-25', balance }, '2026-11-01T00:00:00.000Z')]
@@ -77,7 +78,7 @@ describe('Jars tab', () => {
     expect((await events(adapter)).filter((e) => e.type === 'jar.allocated')).toHaveLength(0)
   })
 
-  it('cents kids see +25¢ and +$1.25', async () => {
+  it('a sub-dollar unsplit amount steps by 25¢', async () => {
     await mount(1225)
     const save = within(card('Save'))
     expect(save.getByRole('button', { name: '+25¢' })).toBeInTheDocument()
@@ -85,13 +86,27 @@ describe('Jars tab', () => {
   })
 
   it('a sibling target on Give appends jar.gifted', async () => {
-    const adapter = await mount(1200, true)
+    const adapter = new InMemoryAdapter()
+    const spy = vi.spyOn(adapter, 'appendEvents')
+    await mount(1200, true, adapter)
+    spy.mockClear()
     const give = within(card('Give'))
     expect(give.getByRole('radio', { name: 'Animal Rescue' })).toBeChecked()
     fireEvent.click(give.getByRole('radio', { name: 'Makenna' }))
     fireEvent.click(give.getByRole('button', { name: '+$1' }))
     await waitFor(async () => expect((await events(adapter)).some((e) => e.type === 'jar.gifted')).toBe(true))
-    expect((await events(adapter)).find((e) => e.type === 'jar.gifted')).toMatchObject({ fromKidId: nolan, toKidId: makenna, amount: 100 })
+    expect(spy).toHaveBeenCalledTimes(1)
+    expect(spy.mock.calls[0][0].map((e) => e.type)).toEqual(['jar.allocated', 'jar.gifted'])
+    const all = await events(adapter)
+    const gift = all.find((e) => e.type === 'jar.gifted')
+    const alloc = all.find((e) => e.type === 'jar.allocated')
+    expect(gift).toMatchObject({ fromKidId: nolan, toKidId: makenna, amount: 100 })
+    expect(alloc).toMatchObject({ kidId: nolan, jar: 'give', amount: 100 })
+    expect(gift?.groupId).toBeTruthy()
+    expect(gift?.groupId).toBe(alloc?.groupId)
+    const giver = jars(nolan, all)
+    expect(giver).toMatchObject({ unsplit: 1100, give: 0 })
+    expect(jars(makenna, all).save).toBe(100)
     expect(await screen.findByText('Giving $1 to Makenna')).toBeInTheDocument()
   })
 
@@ -101,5 +116,44 @@ describe('Jars tab', () => {
     await waitFor(async () => expect((await events(adapter)).some((e) => e.type === 'jar.allocated')).toBe(true))
     expect((await events(adapter)).find((e) => e.type === 'jar.allocated')).toMatchObject({ jar: 'give', amount: 100 })
     expect(await screen.findByText('Giving $1 to Animal Rescue')).toBeInTheDocument()
+  })
+
+  it('rejects an oversize gift', async () => {
+    const adapter = await mount(50, true)
+    const give = within(card('Give'))
+    fireEvent.click(give.getByRole('radio', { name: 'Makenna' }))
+    const big = give.getByRole('button', { name: '+$1.25' })
+    expect(big).toHaveAttribute('aria-disabled', 'true')
+    fireEvent.click(big)
+    expect((await events(adapter)).filter((e) => e.type === 'jar.gifted' || e.type === 'jar.allocated')).toHaveLength(0)
+  })
+
+  it('leaves an archived sibling out of the chooser', async () => {
+    await mount(1200, true, new InMemoryAdapter(), true)
+    expect(within(card('Give')).queryByRole('radio', { name: 'Makenna' })).toBeNull()
+  })
+
+  it('shows +N above 40 coins', async () => {
+    await mount(4500)
+    expect(screen.getByText('+5')).toBeInTheDocument()
+  })
+
+  it('a failed append shows an error and frees the pending amount', async () => {
+    const adapter = new InMemoryAdapter()
+    const real = adapter.appendEvents.bind(adapter)
+    let fail = false
+    vi.spyOn(adapter, 'appendEvents').mockImplementation(async (e) => {
+      if (fail) { fail = false; throw new Error('disk') }
+      return real(e)
+    })
+    await mount(100, false, adapter)
+    fail = true
+    const save = within(card('Save'))
+    fireEvent.click(save.getByRole('button', { name: '+$1' }))
+    expect(await screen.findByText('Could not save that. Try again.')).toBeInTheDocument()
+    expect(screen.getByText('$1 left')).toBeInTheDocument()
+    expect((await events(adapter)).filter((e) => e.type === 'jar.allocated')).toHaveLength(0)
+    fireEvent.click(save.getByRole('button', { name: '+$1' }))
+    await waitFor(async () => expect((await events(adapter)).filter((e) => e.type === 'jar.allocated')).toHaveLength(1))
   })
 })

@@ -89,4 +89,8 @@ export type EventBody =
   | { type: 'entitlement.granted'; key: string }
   | { type: 'undo'; targetEventId: string }
 
-export type QBEvent = { id: string; at: string } & EventBody
+/**
+ * `groupId` links events that were written as one action (for example the allocate and gift pair).
+ * An `undo` of any event in a group must undo every event in that group.
+ */
+export type QBEvent = { id: string; at: string; groupId?: string } & EventBody
