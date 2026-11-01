@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { kidSlotKey, PRICES } from '../../../config/pricing'
-import { kidLimit } from '../../../engine/entitlements'
+import { PRICES } from '../../../config/pricing'
+import { kidLimit, nextKidSlotKey } from '../../../engine/entitlements'
 import { formatCents } from '../../../engine/money'
 import type { Grade, ThemeKey } from '../../../engine/types'
 import { activeKids, useActions, useStore } from '../../../state/store'
@@ -59,7 +59,7 @@ export function KidsEditor() {
 
   const unlock = (): void => {
     require(() => {
-      update({ type: 'entitlement.grant', key: kidSlotKey(kids.length + 1) })
+      update({ type: 'entitlement.grant', key: nextKidSlotKey(family) })
         .then(() => toast.show('Extra profile unlocked'))
         .catch(() => toast.show('Could not save that. Try again.'))
     })

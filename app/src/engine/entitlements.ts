@@ -1,5 +1,5 @@
 import { FREE_LIMITS, FREE_THEMES } from '../config/limits'
-import { CHORES_UNLIMITED_KEY, PRO_KEY, packKey, themeKey } from '../config/pricing'
+import { CHORES_UNLIMITED_KEY, PRO_KEY, kidSlotKey, packKey, themeKey } from '../config/pricing'
 import type { Family, ThemeKey } from './types'
 
 const has = (f: Family, key: string): boolean => f.entitlements.some((e) => e.key === key)
@@ -20,3 +20,8 @@ export const ownsTheme = (f: Family, key: ThemeKey): boolean =>
   FREE_THEMES.includes(key) || hasPro(f) || has(f, themeKey(key))
 
 export const ownsPack = (f: Family, id: string): boolean => hasPro(f) || has(f, packKey(id))
+
+/** The next extra-profile key: one more than the slots already owned, so a grant never collides. */
+export function nextKidSlotKey(f: Family): string {
+  return kidSlotKey(f.entitlements.filter((e) => e.key.startsWith('kid-slot:')).length + 1)
+}

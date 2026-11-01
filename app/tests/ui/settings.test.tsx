@@ -282,10 +282,10 @@ describe('settings', () => {
     await waitFor(async () => expect((await family(adapter)).entitlements.map((e) => e.key)).toContain('chores-unlimited'))
   })
 
-  it('unlocks an extra kid slot as kid-slot:3 at the kid limit', async () => {
+  it('unlocks an extra kid slot as kid-slot:1 at the kid limit', async () => {
     const { adapter } = await mount()
     fireEvent.click(screen.getByRole('button', { name: /Unlock extra profile/ }))
-    await waitFor(async () => expect((await family(adapter)).entitlements.map((e) => e.key)).toContain('kid-slot:3'))
+    await waitFor(async () => expect((await family(adapter)).entitlements.map((e) => e.key)).toContain('kid-slot:1'))
   })
 
   it('resizes a chosen photo to a 256px JPEG data URL', async () => {

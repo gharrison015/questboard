@@ -1,7 +1,7 @@
 import { PACKS } from '../../config/packs'
-import { PRICES, CHORES_UNLIMITED_KEY, PRO_KEY, kidSlotKey, packKey, themeKey } from '../../config/pricing'
+import { PRICES, CHORES_UNLIMITED_KEY, PRO_KEY, packKey, themeKey } from '../../config/pricing'
 import { THEMES, THEME_ORDER } from '../../config/themes'
-import { hasPro, ownsPack, ownsTheme } from '../../engine/entitlements'
+import { hasPro, nextKidSlotKey, ownsPack, ownsTheme } from '../../engine/entitlements'
 import { LimitError } from '../../engine/reducer'
 import { formatCents } from '../../engine/money'
 import type { Kid } from '../../engine/types'
@@ -29,9 +29,8 @@ export function Shop({ kid }: { kid: Kid }) {
     })
   }
 
-  const slots = family.entitlements.filter((e) => e.key.startsWith('kid-slot:')).length
   const plans: { key: string; name: string; note: string; price: string; owned: boolean }[] = [
-    { key: kidSlotKey(slots + 1), name: 'Extra profile', note: 'One more kid', price: formatCents(PRICES.extraKid), owned: pro },
+    { key: nextKidSlotKey(family), name: 'Extra profile', note: 'One more kid', price: formatCents(PRICES.extraKid), owned: pro },
     { key: CHORES_UNLIMITED_KEY, name: 'Unlimited chores', note: 'No limit per kid', price: formatCents(PRICES.unlimitedChores), owned: pro || owns(CHORES_UNLIMITED_KEY) },
   ]
 
