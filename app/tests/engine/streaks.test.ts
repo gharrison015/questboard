@@ -93,6 +93,30 @@ describe('badges', () => {
     expect(earned(ctx, 'save-50')).toBeNull()
   })
 
+  it('save-25 crossing across several events returns the third', () => {
+    const evs = [1000, 1000, 600].map((amount, i) =>
+      ev({ type: 'jar.allocated', kidId: nolan, jar: 'save', amount }, at(5 + i)))
+    expect(earned(ctxFor(family, evs.slice(0, 2), now), 'save-25')).toBeNull()
+    expect(earned(ctxFor(family, evs, now), 'save-25')).toBe(evs[2].at)
+  })
+
+  it('performance smoke: 400 days of events', () => {
+    const fam = makeFamily({ createdAt: new Date(2025, 8, 1).toISOString() })
+    const today = new Date(2026, 9, 8, 10)
+    const evs: QBEvent[] = []
+    for (let i = 0; i < 400; i++) {
+      const d = new Date(2025, 8, 4 + i, 12)
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+      for (const c of CHORES) evs.push(ev({ type: 'chore.checked', kidId: nolan, choreId: c, date: key }, d.toISOString()))
+      if (i % 8 === 0) evs.push(ev({ type: 'deduction.logged', kidId: nolan, reasonId: 'r-yelling', amount: 50, date: key }, d.toISOString()))
+    }
+    const t0 = performance.now()
+    const ctx = ctxFor(fam, evs, today)
+    badges(ctx)
+    streak(fam, fam.kids[0], evs, '2026-10-08', today)
+    expect(performance.now() - t0).toBeLessThan(300)
+  })
+
   it('first-give from allocation or gift', () => {
     const g = ev({ type: 'jar.allocated', kidId: nolan, jar: 'give', amount: 100 }, at(6))
     expect(earned(ctxFor(family, [g], now), 'first-give')).toBe(g.at)

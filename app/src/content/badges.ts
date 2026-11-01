@@ -1,9 +1,8 @@
 import type { DateKey, Family, Kid, QBEvent } from '../engine/types'
 import type { Jars } from '../engine/jars'
-import { jars as jarsOf } from '../engine/jars'
-import { choreDayState, liveEvents, type WeekState } from '../engine/week'
+import { choreDayStateLive, liveEvents, type WeekState } from '../engine/week'
 import { dateKey } from '../engine/dates'
-import { perfectDayKeys, streakReachedOn } from '../engine/streaks'
+import { dayBuckets, perfectDayKeys, streakReachedOn } from '../engine/streaks'
 
 export interface BadgeCtx {
   family: Family
@@ -12,6 +11,8 @@ export interface BadgeCtx {
   now: Date
   jars: Jars
   weeks: WeekState[]
+  /** Perfect day keys, computed once by badges() when absent. */
+  perfectDays?: DateKey[]
 }
 
 export interface BadgeDef {
@@ -29,18 +30,18 @@ function firstLive(ctx: BadgeCtx, pick: (e: QBEvent) => boolean): string | null 
 
 function streakBadge(n: number) {
   return (ctx: BadgeCtx): string | null =>
-    streakReachedOn(perfectDayKeys(ctx.family, ctx.kid, ctx.events, ctx.now), n)
+    streakReachedOn(ctx.perfectDays ?? perfectDayKeys(ctx.family, ctx.kid, ctx.events, ctx.now), n)
 }
 
 /** The `at` of the live event after which the Save jar first held at least `cents`. */
 function saveReached(ctx: BadgeCtx, cents: number): string | null {
-  const live = liveEvents(ctx.events)
-  for (let i = 0; i < live.length; i++) {
-    const e = live[i]
-    const moves =
-      (e.type === 'jar.allocated' && e.kidId === ctx.kid.id && e.jar === 'save') ||
-      (e.type === 'jar.gifted' && e.toKidId === ctx.kid.id)
-    if (moves && jarsOf(ctx.kid.id, live.slice(0, i + 1)).save >= cents) return e.at
+  let save = 0
+  for (const e of liveEvents(ctx.events)) {
+    if (e.type === 'jar.allocated' && e.kidId === ctx.kid.id && e.jar === 'save') save += e.amount
+    else if (e.type === 'jar.gifted' && e.toKidId === ctx.kid.id) save += e.amount
+    else if (e.type === 'jar.paidOut' && e.kidId === ctx.kid.id && e.jar === 'save') save = Math.max(0, save - e.amount)
+    else continue
+    if (save >= cents) return e.at
   }
   return null
 }
@@ -59,13 +60,13 @@ function firstFullWeek(ctx: BadgeCtx): string | null {
 }
 
 function firstPaidChore(ctx: BadgeCtx): string | null {
-  const live = liveEvents(ctx.events)
+  const buckets = dayBuckets(ctx.kid, liveEvents(ctx.events))
   const today = dateKey(ctx.now)
   for (const ws of ctx.weeks) {
     for (const date of ws.days) {
       if (date > today) break
       for (const chore of ctx.kid.chores) {
-        if (chore.pay > 0 && choreDayState(ctx.family, ctx.kid, chore, date, live, ctx.now).pays) return date as DateKey
+        if (chore.pay > 0 && choreDayStateLive(ctx.family, ctx.kid, chore, date, buckets.get(date) ?? [], ctx.now).pays) return date as DateKey
       }
     }
   }
@@ -95,5 +96,6 @@ export const BADGES: BadgeDef[] = [
 ]
 
 export function badges(ctx: BadgeCtx): { def: BadgeDef; earnedAt: string | null }[] {
-  return BADGES.map((def) => ({ def, earnedAt: def.test(ctx) }))
+  const full: BadgeCtx = { ...ctx, perfectDays: ctx.perfectDays ?? perfectDayKeys(ctx.family, ctx.kid, ctx.events, ctx.now) }
+  return BADGES.map((def) => ({ def, earnedAt: def.test(full) }))
 }

@@ -53,7 +53,8 @@ export function liveEvents(events: QBEvent[]): QBEvent[] {
   return sorted.filter((e) => e.type !== 'undo' && !undone.has(e.id))
 }
 
-function choreDayStateLive(
+/** Same as choreDayState but trusts that `live` is already filtered and sorted by liveEvents. */
+export function choreDayStateLive(
   family: Family,
   kid: Kid,
   chore: Chore,
