@@ -1,23 +1,22 @@
 ---
 title: QuestBoard pickup
 updated: 2026-11-01
-status: v1 built on branch build/v1, final review in progress, not yet merged or deployed
+status: v1 shipped 2026-11-01, live at https://gharrison015.github.io/questboard/
 ---
 
 # QuestBoard pickup
 
 ## Where things stand (2026-11-01)
 
-- The real app lives in `app/` (Vite + React 19 + TypeScript, local-first, IndexedDB event ledger). 18 plan tasks are complete on branch `build/v1`, each task-reviewed and fixed. 257 unit tests, 42 Playwright flows across iPhone, Pixel, iPad, fold and TV sizes.
+- The real app lives in `app/` (Vite + React 19 + TypeScript, local-first, IndexedDB event ledger). 18 plan tasks plus a whole-branch review fix wave are merged to `main`. 293 unit tests (including a money-conservation property test), 42 Playwright flows across iPhone, Pixel, iPad, fold and TV sizes. The build ledger with all 31 rulings is `docs/superpowers/2026-11-01-v1-build-ledger.md`.
 - The old prototype is frozen under `prototype/` and served at `/prototype/` with a self-unregistering service worker.
-- Deploy is GitHub Actions to Pages (`.github/workflows/pages.yml`). The Pages source must be switched from "branch main /" to "GitHub Actions" before the first deploy, or the new root `index.html` (now under `app/`) will 404.
+- Deploy is GitHub Actions to Pages (`.github/workflows/pages.yml`); Pages is set to build from Actions. Every push to `main` runs tests, the contrast gate and the build, then deploys.
 
 ## Next steps, in order
 
-1. Read the final whole-branch review result in `.superpowers/sdd/2026-11-01-questboard-v1/progress.md` (ledger) and fix anything it blocks on.
-2. Push `build/v1`, merge to `main` (fast-forward), switch Pages to Actions (`gh api -X PUT repos/gharrison015/questboard/pages -f build_type=workflow`), watch the run, verify https://gharrison015.github.io/questboard/ shows the setup wizard and `/prototype/` still loads.
-3. Install on the kitchen tablet, run setup for Nolan and Makenna, write down the recovery code.
-4. Next round candidates: Supabase sync (adapter boundary is in `app/src/storage/adapter.ts`), Capacitor wrappers, real billing (RevenueCat), run-setup-again from Settings, caregiver invites, sticker equipping, per-element import validation.
+1. Install on the kitchen tablet (Add to Home Screen), run setup for Nolan and Makenna, write down the recovery code. Pin a monitor to `#tv` if wanted.
+2. Deferred minors from the final re-review: `PaydayPanel.closeCurrentWeek` computes outside the store queue (money-neutral); the cross-tab channel handler is live before the first load commits; a cross-tab erase leaves `parentUnlockedAt` set in the other tab.
+3. Next round candidates: Supabase sync (adapter boundary is in `app/src/storage/adapter.ts`), Capacitor wrappers, real billing (RevenueCat), run-setup-again from Settings, caregiver invites, sticker equipping, per-element import validation.
 
 ## Commands
 
