@@ -38,7 +38,7 @@ function Board({ kid }: { kid: Kid }) {
         <TabBar tabs={TABS} active={tab} onChange={setTab} />
         <div className="kb-panel" role="region" aria-label={TABS.find((t) => t.id === tab)?.label}>
           {tab === 'today' ? <TodayTab kid={kid} onChecked={hop} /> : null}
-          {tab === 'week' ? <WeekTab /> : null}
+          {tab === 'week' ? <WeekTab kid={kid} onChecked={hop} /> : null}
           {tab === 'jars' ? <JarsTab /> : null}
           {tab === 'badges' ? <BadgesTab /> : null}
         </div>

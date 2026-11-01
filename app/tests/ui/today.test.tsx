@@ -81,7 +81,7 @@ describe('Today tab', () => {
     await mount()
     for (const t of ['Today', 'Week', 'Jars', 'Badges']) expect(screen.getByRole('button', { name: t })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Week' }))
-    expect(screen.getByText('Week view coming soon')).toBeInTheDocument()
+    expect(screen.getByRole('list', { name: 'Days of the week' })).toBeInTheDocument()
   })
 
   it('celebrates a perfect day once and remembers it', async () => {
