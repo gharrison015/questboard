@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { dayFull } from '../../engine/dates'
 import { newId } from '../../engine/ids'
 import type { DateKey, Kid, QBEvent } from '../../engine/types'
@@ -14,12 +15,17 @@ export function VerifyPanel({ kid }: { kid: Kid }) {
   const rows = useUnverified(kid)
   const { append } = useActions()
   const toast = useToast()
+  const busy = useRef(false)
   if (rows.length === 0) return null
 
   const decide = (items: Item[], type: 'chore.verified' | 'chore.rejected'): void => {
+    if (busy.current) return
+    busy.current = true
     const at = new Date().toISOString()
     const out: QBEvent[] = items.map((i) => ({ id: newId(), at, type, kidId: kid.id, choreId: i.choreId, date: i.date }))
-    append(out).catch(() => toast.show('Could not save that. Try again.'))
+    append(out)
+      .catch(() => toast.show('Could not save that. Try again.'))
+      .finally(() => { busy.current = false })
   }
 
   return (

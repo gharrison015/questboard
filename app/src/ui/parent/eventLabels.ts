@@ -64,9 +64,15 @@ export interface ActivityRow {
   /** Every non-undo event the row stands for: the whole group when events share a groupId. */
   ids: string[]
   undone: boolean
-  /** False for events outside the current open week (frozen). */
+  /** False for events outside the current open week (frozen) and for a close with money moved after it. */
   undoable: boolean
+  /** A week close shown as "Closed" instead of an Undo button. */
+  closedNote: boolean
+  /** Undoing this row reopens the week, so the parent confirms first. */
+  reopen: boolean
 }
+
+const MONEY_AFTER = new Set(['jar.allocated', 'jar.gifted', 'jar.paidOut', 'jar.donated'])
 
 /**
  * The kid's events for the current week, newest first, with grouped events merged into one row.
@@ -87,6 +93,15 @@ export function activityRows(family: Family, kid: Kid, events: QBEvent[], now: D
     .sort((a, b) => Date.parse(b.e.at) - Date.parse(a.e.at) || b.i - a.i)
     .map((x) => x.e)
 
+  // Chronological position, so "later" means later in the ledger order that liveEvents uses.
+  const pos = new Map<string, number>()
+  events
+    .map((e, i) => ({ e, i }))
+    .sort((a, b) => Date.parse(a.e.at) - Date.parse(b.e.at) || a.i - b.i)
+    .forEach((x, n) => pos.set(x.e.id, n))
+  const moneyMovedAfter = (closeId: string): boolean =>
+    events.some((m) => MONEY_AFTER.has(m.type) && !undone.has(m.id) && involves(m, kid.id) && (pos.get(m.id) ?? 0) > (pos.get(closeId) ?? 0))
+
   const rows: ActivityRow[] = []
   const seenGroups = new Set<string>()
   for (const e of ordered) {
@@ -101,13 +116,16 @@ export function activityRows(family: Family, kid: Kid, events: QBEvent[], now: D
     const lead = members.find((m) => m.type === 'jar.gifted' && involves(m, kid.id)) ?? e
     const label = eventLabel(lead, family, kid, today)
     if (!label) continue
-    const closedEarlier = members.some((m) => m.type === 'week.closed' && m.weekStart !== start)
+    const close = members.find((m) => m.type === 'week.closed')
+    const frozen = !!close && (close.type === 'week.closed' && close.weekStart !== start || moneyMovedAfter(close.id))
     rows.push({
       key: lead.id,
       label,
       ids: members.map((m) => m.id),
       undone: members.every((m) => undone.has(m.id)),
-      undoable: !closedEarlier,
+      undoable: !frozen,
+      closedNote: frozen,
+      reopen: !!close && !frozen,
     })
   }
   return rows

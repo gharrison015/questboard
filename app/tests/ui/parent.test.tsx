@@ -145,8 +145,11 @@ describe('parent view', () => {
     })
     const list = screen.getByRole('list', { name: 'Activity' })
     expect(within(list).getAllByText('Gave $2 to Makenna')).toHaveLength(1)
+    const spy = vi.spyOn(adapter, 'appendEvents')
     fireEvent.click(within(list).getByRole('button', { name: 'Undo Gave $2 to Makenna' }))
     await waitFor(async () => expect((await stored(adapter)).filter((e) => e.type === 'undo')).toHaveLength(2))
+    expect(spy).toHaveBeenCalledTimes(1)
+    expect(spy.mock.calls[0][0]).toHaveLength(2)
 
     fireEvent.click(await within(list).findByRole('button', { name: 'Redo Gave $2 to Makenna' }))
     await waitFor(async () => expect((await stored(adapter)).filter((e) => e.type === 'undo')).toHaveLength(4))
@@ -227,6 +230,139 @@ describe('parent view', () => {
     await mount()
     fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
     expect(screen.getByText('Settings coming in Task 15')).toBeInTheDocument()
+  })
+})
+
+describe('parent view fixes', () => {
+  beforeEach(() => {
+    sessionStorage.clear()
+    localStorage.clear()
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(NOW)
+  })
+  afterEach(() => vi.useRealTimers())
+
+  const spendEvents = (spend: number): QBEvent[] => [
+    ev({ type: 'week.closed', kidId: nolan, weekStart: '2026-10-25', balance: 5000 }, AT),
+    ev({ type: 'jar.allocated', kidId: nolan, jar: 'spend', amount: spend }, AT),
+  ]
+
+  it('builds all three payout URLs with a cents amount and an encoded handle', async () => {
+    await mount({
+      family: { payHandles: { paypal: 'a/b?c', cashapp: 'cash', venmo: 'ven' } },
+      events: spendEvents(1250),
+    })
+    const group = screen.getByRole('group', { name: 'Pay out Spend' })
+    expect(within(group).getByRole('link', { name: 'PayPal' })).toHaveAttribute('href', 'https://paypal.me/a%2Fb%3Fc/12.50')
+    expect(within(group).getByRole('link', { name: 'Cash App' })).toHaveAttribute('href', 'https://cash.app/$cash/12.50')
+    expect(within(group).getByRole('link', { name: 'Venmo' })).toHaveAttribute('href', 'https://venmo.com/ven?txn=pay&amount=12.50')
+  })
+
+  it('a double click on a payout link records one jar.paidOut', async () => {
+    const { adapter } = await mount({ family: { payHandles: { paypal: 'fam' } }, events: spendEvents(500) })
+    const link = within(screen.getByRole('group', { name: 'Pay out Spend' })).getByRole('link', { name: 'PayPal' })
+    link.addEventListener('click', (e) => e.preventDefault())
+    fireEvent.click(link)
+    fireEvent.click(link)
+    await waitFor(async () => expect((await stored(adapter)).some((e) => e.type === 'jar.paidOut')).toBe(true))
+    await new Promise((r) => setTimeout(r, 30))
+    expect((await stored(adapter)).filter((e) => e.type === 'jar.paidOut')).toHaveLength(1)
+  })
+
+  it('a double click on Donate records one jar.donated', async () => {
+    const open = vi.spyOn(window, 'open').mockReturnValue(null)
+    const family = makeFamily()
+    family.kids[0].charity = { name: 'Animal Rescue', url: 'https://example.org/give' }
+    const { adapter } = await mount({
+      family: { kids: family.kids },
+      events: [
+        ev({ type: 'week.closed', kidId: nolan, weekStart: '2026-10-25', balance: 1200 }, AT),
+        ev({ type: 'jar.allocated', kidId: nolan, jar: 'give', amount: 300 }, AT),
+      ],
+    })
+    const btn = screen.getByRole('button', { name: 'Donate to Animal Rescue' })
+    fireEvent.click(btn)
+    fireEvent.click(btn)
+    await waitFor(async () => expect((await stored(adapter)).some((e) => e.type === 'jar.donated')).toBe(true))
+    await new Promise((r) => setTimeout(r, 30))
+    expect((await stored(adapter)).filter((e) => e.type === 'jar.donated')).toHaveLength(1)
+    expect(open).toHaveBeenCalledTimes(1)
+    open.mockRestore()
+  })
+
+  it('Close week now fires once and then disables', async () => {
+    const { adapter } = await mount()
+    const spy = vi.spyOn(adapter, 'appendEvents')
+    fireEvent.click(screen.getByRole('button', { name: 'Close week now' }))
+    const confirm = await screen.findByRole('button', { name: 'Close week' })
+    fireEvent.click(confirm)
+    fireEvent.click(confirm)
+    const done = await screen.findByRole('button', { name: 'Week already closed' })
+    expect(done).toHaveAttribute('aria-disabled', 'true')
+    fireEvent.click(done)
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(spy).toHaveBeenCalledTimes(1)
+    expect((await stored(adapter)).filter((e) => e.type === 'week.closed' && e.weekStart === '2026-11-01')).toHaveLength(1)
+  })
+
+  it('a double tap on Verify records one chore.verified', async () => {
+    const { adapter } = await mount({
+      family: { verification: 'parent-approve' },
+      events: [ev({ type: 'chore.checked', kidId: nolan, choreId: TRASH, date: '2026-11-04' }, AT)],
+    })
+    const btn = screen.getByRole('button', { name: 'Verify Take out trash' })
+    fireEvent.click(btn)
+    fireEvent.click(btn)
+    await waitFor(async () => expect((await stored(adapter)).some((e) => e.type === 'chore.verified')).toBe(true))
+    await new Promise((r) => setTimeout(r, 30))
+    expect((await stored(adapter)).filter((e) => e.type === 'chore.verified')).toHaveLength(1)
+  })
+
+  it('undoing a week close confirms first when nothing moved after it', async () => {
+    const { adapter } = await mount({
+      events: [ev({ type: 'week.closed', kidId: nolan, weekStart: '2026-11-01', balance: 1200 }, AT)],
+    })
+    const list = screen.getByRole('list', { name: 'Activity' })
+    fireEvent.click(within(list).getByRole('button', { name: 'Undo Payday: $12 to split' }))
+    expect(await screen.findByText('Reopen this week? The payday coins go back.')).toBeInTheDocument()
+    expect((await stored(adapter)).some((e) => e.type === 'undo')).toBe(false)
+    fireEvent.click(screen.getByRole('button', { name: 'Reopen week' }))
+    await waitFor(async () => expect((await stored(adapter)).filter((e) => e.type === 'undo')).toHaveLength(1))
+  })
+
+  it('hides Undo on a week close once money moved after it', async () => {
+    await mount({
+      events: [
+        ev({ type: 'week.closed', kidId: nolan, weekStart: '2026-11-01', balance: 1200 }, AT),
+        ev({ type: 'jar.allocated', kidId: nolan, jar: 'save', amount: 100 }, new Date(NOW.getTime() + 60000).toISOString()),
+      ],
+    })
+    const list = screen.getByRole('list', { name: 'Activity' })
+    expect(within(list).queryByRole('button', { name: 'Undo Payday: $12 to split' })).toBeNull()
+    expect(within(list).getByText('Closed')).toBeInTheDocument()
+    expect(within(list).getByRole('button', { name: 'Undo Saved $1' })).toBeInTheDocument()
+  })
+
+  it('the toast Undo does nothing after Lock and says to unlock', async () => {
+    const { adapter } = await mount()
+    const before = screen.queryAllByRole('button', { name: 'Undo' }).length
+    fireEvent.click(screen.getByRole('button', { name: /Yelling/ }))
+    await waitFor(() => expect(screen.queryAllByRole('button', { name: 'Undo' }).length).toBeGreaterThan(before))
+    fireEvent.click(screen.getByRole('button', { name: 'Lock' }))
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'Log a deduction' })).toBeNull())
+    const undos = screen.getAllByRole('button', { name: 'Undo' })
+    fireEvent.click(undos[undos.length - 1])
+    expect(await screen.findAllByText('Unlock to undo')).not.toHaveLength(0)
+    expect((await stored(adapter)).some((e) => e.type === 'undo')).toBe(false)
+  })
+
+  it('leaves the parent view when the five minute session lapses', async () => {
+    await mount()
+    expect(screen.getByRole('region', { name: 'Log a deduction' })).toBeInTheDocument()
+    // The shell's minute tick (and a return to the tab) refreshes `now`; the effect then calls lockParent.
+    vi.setSystemTime(new Date(NOW.getTime() + 5 * 60_000 + 60_000))
+    fireEvent(document, new Event('visibilitychange'))
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'Log a deduction' })).toBeNull())
   })
 })
 

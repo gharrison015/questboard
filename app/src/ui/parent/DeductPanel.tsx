@@ -5,12 +5,14 @@ import type { Kid, QBEvent, Reason } from '../../engine/types'
 import { useActions, useStore } from '../../state/store'
 import { SectionHead } from '../primitives/SectionHead'
 import { useToast } from '../primitives/Toaster'
+import { useParent } from './useParent'
 
 /** Reason chips, three across. A tap logs the deduction for today and offers an undo. */
 export function DeductPanel({ kid }: { kid: Kid }) {
   const { family } = useStore()
   const { append } = useActions()
   const toast = useToast()
+  const parent = useParent()
   if (!family) return null
   const fallback = effectiveMoney(family, kid).deductionDefault
 
@@ -27,6 +29,8 @@ export function DeductPanel({ kid }: { kid: Kid }) {
         toast.show(`${kid.name} lost ${formatCents(amount)}, ${reason.label}`, 6000, {
           label: 'Undo',
           onClick: () => {
+            // The toast can outlive the PIN session, so check it at click time.
+            if (!parent.isValid()) { toast.show('Unlock to undo'); return }
             append([{ id: newId(), at: new Date().toISOString(), type: 'undo', targetEventId: logged.id }])
               .catch(() => toast.show('Could not undo that. Try again.'))
           },

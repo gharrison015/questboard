@@ -1,16 +1,19 @@
+import { useState } from 'react'
 import { newId } from '../../engine/ids'
 import type { Kid, QBEvent } from '../../engine/types'
 import { useActions, useStore } from '../../state/store'
 import { Button } from '../primitives/Button'
+import { Modal } from '../primitives/Modal'
 import { SectionHead } from '../primitives/SectionHead'
 import { useToast } from '../primitives/Toaster'
-import { activityRows, redoTargets, undoTargets } from './eventLabels'
+import { activityRows, redoTargets, undoTargets, type ActivityRow } from './eventLabels'
 
 /** This week's events for the kid, newest first, with Undo and Redo. Closed weeks are never listed. */
 export function ThisWeek({ kid }: { kid: Kid }) {
   const { family, events, now } = useStore()
   const { append } = useActions()
   const toast = useToast()
+  const [reopen, setReopen] = useState<ActivityRow | null>(null)
   if (!family) return null
   const rows = activityRows(family, kid, events, now)
 
@@ -31,15 +34,22 @@ export function ThisWeek({ kid }: { kid: Kid }) {
           {rows.map((r) => (
             <li key={r.key} className="pr-row" data-undone={r.undone ? 'true' : undefined}>
               <span className={r.undone ? 'pr-row-main pr-struck' : 'pr-row-main'}>{r.label}</span>
-              {!r.undoable ? null : r.undone ? (
+              {r.closedNote ? <span className="pr-tile-state">Closed</span> : !r.undoable ? null : r.undone ? (
                 <Button className="pr-dense" variant="quiet" aria-label={`Redo ${r.label}`} onClick={() => appendUndos(redoTargets(events, r.ids))}>Redo</Button>
               ) : (
-                <Button className="pr-dense" variant="quiet" aria-label={`Undo ${r.label}`} onClick={() => appendUndos(undoTargets(events, r.ids))}>Undo</Button>
+                <Button className="pr-dense" variant="quiet" aria-label={`Undo ${r.label}`} onClick={() => (r.reopen ? setReopen(r) : appendUndos(undoTargets(events, r.ids)))}>Undo</Button>
               )}
             </li>
           ))}
         </ul>
       )}
+      <Modal open={reopen !== null} title="Reopen week" onClose={() => setReopen(null)}>
+        <h2 className="pr-modal-title">Reopen this week? The payday coins go back.</h2>
+        <div className="pr-modal-actions">
+          <Button variant="quiet" onClick={() => setReopen(null)}>Cancel</Button>
+          <Button onClick={() => { if (reopen) appendUndos(undoTargets(events, reopen.ids)); setReopen(null) }}>Reopen week</Button>
+        </div>
+      </Modal>
     </section>
   )
 }

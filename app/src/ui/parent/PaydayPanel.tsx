@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { currentWeekStart } from '../../engine/closeWeeks'
 import { newId } from '../../engine/ids'
 import { formatCents } from '../../engine/money'
@@ -13,12 +13,12 @@ import { useToast } from '../primitives/Toaster'
 type Service = keyof PayHandles
 const SERVICES: { key: Service; name: string; url(handle: string, dollars: string): string }[] = [
   { key: 'paypal', name: 'PayPal', url: (h, d) => `https://paypal.me/${h}/${d}` },
-  { key: 'cashapp', name: 'Cash App', url: (h, d) => `https://cash.app/${h}/${d}` },
+  { key: 'cashapp', name: 'Cash App', url: (h, d) => `https://cash.app/$${h}/${d}` },
   { key: 'venmo', name: 'Venmo', url: (h, d) => `https://venmo.com/${h}?txn=pay&amount=${d}` },
 ]
 
-/** 1250 becomes "12.5", 1200 becomes "12". */
-const dollars = (c: number): string => String(c / 100)
+/** 1250 becomes "12.50", 1200 becomes "12". */
+const dollars = (c: number): string => (c % 100 === 0 ? String(c / 100) : (c / 100).toFixed(2))
 
 /** Payday: unsplit coins, jar totals, an early close, payouts for Spend and Save, and Donate for Give. */
 export function PaydayPanel({ kid }: { kid: Kid }) {
@@ -28,31 +28,45 @@ export function PaydayPanel({ kid }: { kid: Kid }) {
   const j = useJars(kid)
   const ws = useWeek(kid)
   const [confirm, setConfirm] = useState(false)
+  // One money action at a time: a double tap must record once.
+  const payBusy = useRef(false)
+  const closeBusy = useRef(false)
+  const [paying, setPaying] = useState(false)
   if (!family) return null
   const handles = family.payHandles ?? {}
   const fail = (): void => toast.show('Could not save that. Try again.')
 
   const close = (): void => {
     setConfirm(false)
+    if (closeBusy.current) return
+    closeBusy.current = true
     append([{
       id: newId(), at: new Date().toISOString(), type: 'week.closed',
       kidId: kid.id, weekStart: currentWeekStart(family, now), balance: ws.balance,
     }])
       .then(() => toast.show(`Closed the week. ${formatCents(ws.balance)} to split.`))
       .catch(fail)
+      .finally(() => { closeBusy.current = false })
+  }
+
+  const guarded = (run: () => Promise<void>): void => {
+    payBusy.current = true
+    setPaying(true)
+    run().finally(() => { payBusy.current = false; setPaying(false) })
   }
 
   const paidOut = (jar: 'spend' | 'save', amount: number, via: Service): void => {
-    append([{ id: newId(), at: new Date().toISOString(), type: 'jar.paidOut', kidId: kid.id, jar, amount, via }]).catch(fail)
+    guarded(() => append([{ id: newId(), at: new Date().toISOString(), type: 'jar.paidOut', kidId: kid.id, jar, amount, via }]).catch(fail))
   }
 
   const donate = (): void => {
     const charity = kid.charity
     if (!charity || j.give <= 0) return
+    if (payBusy.current) return
     if (charity.url) window.open(charity.url, '_blank', 'noopener,noreferrer')
-    append([{ id: newId(), at: new Date().toISOString(), type: 'jar.donated', kidId: kid.id, amount: j.give, to: charity.name }])
+    guarded(() => append([{ id: newId(), at: new Date().toISOString(), type: 'jar.donated', kidId: kid.id, amount: j.give, to: charity.name }])
       .then(() => toast.show(`Recorded ${formatCents(j.give)} to ${charity.name}`))
-      .catch(fail)
+      .catch(fail))
   }
 
   const payBlock = (jar: 'spend' | 'save', label: string) => {
@@ -72,7 +86,12 @@ export function PaydayPanel({ kid }: { kid: Kid }) {
                 href={s.url(encodeURIComponent(handle), dollars(amount))}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={() => paidOut(jar, amount, s.key)}
+                aria-disabled={paying ? 'true' : undefined}
+                onClick={(e) => {
+                  // A second tap while the first is saving must not record or open again.
+                  if (payBusy.current) { e.preventDefault(); return }
+                  paidOut(jar, amount, s.key)
+                }}
               >
                 {s.name}
               </a>
@@ -104,7 +123,7 @@ export function PaydayPanel({ kid }: { kid: Kid }) {
           <>
             <Button
               variant="quiet"
-              aria-disabled={j.give > 0 ? undefined : 'true'}
+              aria-disabled={j.give > 0 && !paying ? undefined : 'true'}
               onClick={j.give > 0 ? donate : undefined}
             >
               {charity.url ? `Donate to ${charity.name}` : `Record donation to ${charity.name}`}

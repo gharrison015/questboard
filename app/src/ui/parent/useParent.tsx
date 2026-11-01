@@ -8,6 +8,8 @@ interface ParentApi {
   /** Runs fn now when the parent session is valid, else opens the PIN gate and runs fn on success. */
   require(fn: () => void): void
   lock(): void
+  /** True when the PIN session is valid right now. Reads live, so a stale closure cannot outlive a lock. */
+  isValid(): boolean
 }
 
 const ParentCtx = createContext<ParentApi | null>(null)
@@ -27,9 +29,11 @@ export function ParentProvider({ children }: { children: ReactNode }) {
     setOpen(true)
   }, [])
 
+  const isValid = useCallback((): boolean => sessionValid(unlockedAtRef.current, Date.now()), [])
+
   const api = useMemo<ParentApi>(
-    () => ({ unlocked: sessionValid(parentUnlockedAt, now.getTime()), require, lock: lockParent }),
-    [parentUnlockedAt, now, require, lockParent],
+    () => ({ unlocked: sessionValid(parentUnlockedAt, now.getTime()), require, lock: lockParent, isValid }),
+    [parentUnlockedAt, now, require, lockParent, isValid],
   )
 
   const close = (): void => { pending.current = null; setOpen(false) }
