@@ -79,7 +79,7 @@ export type EventBody =
   | { type: 'routine.step'; kidId: string; routineId: string; stepId: string; date: DateKey; done: boolean }
   | { type: 'deduction.logged'; kidId: string; reasonId: string; amount: Cents; date: DateKey }
   | { type: 'earnback.earned'; kidId: string; skill: string; amount: Cents; date: DateKey }
-  | { type: 'week.closed'; kidId: string; weekStart: DateKey; balance: Cents }
+  | { type: 'week.closed'; kidId: string; weekStart: DateKey; balance: Cents; inactive?: boolean }
   | { type: 'jar.allocated'; kidId: string; jar: JarKey; amount: Cents }
   | { type: 'jar.paidOut'; kidId: string; jar: 'save' | 'spend'; amount: Cents; via: string }
   | { type: 'jar.donated'; kidId: string; amount: Cents; to: string }

@@ -43,7 +43,7 @@ function byTime(events: QBEvent[]): QBEvent[] {
 }
 
 /** Drops every event that is the target of an undo which is itself not undone. */
-function liveEvents(events: QBEvent[]): QBEvent[] {
+export function liveEvents(events: QBEvent[]): QBEvent[] {
   const sorted = byTime(events)
   const undone = new Set<string>()
   for (let i = sorted.length - 1; i >= 0; i--) {
