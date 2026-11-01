@@ -8,7 +8,6 @@
 <meta name="theme-color" content="#0d1030" />
 <meta name="apple-mobile-web-app-title" content="QuestBoard" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<link rel="manifest" href="manifest.webmanifest" />
 <link rel="apple-touch-icon" href="icon-180.png" />
 <title>QuestBoard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -1681,11 +1680,6 @@ function autoMode(){
 addEventListener("resize",autoMode);
 autoMode();
 render();
-
-/* PWA: register service worker so it installs to the home screen */
-if("serviceWorker" in navigator){
-  addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
-}
 </script>
 </body>
 </html>

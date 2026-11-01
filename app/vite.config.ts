@@ -13,6 +13,7 @@ export default defineConfig({
         cacheId: 'qb',
         cleanupOutdatedCaches: true,
         navigateFallback: '/questboard/index.html',
+        navigateFallbackDenylist: [/^\/questboard\/prototype\//],
         globPatterns: ['**/*.{js,css,html,png,woff2}'],
       },
       manifest: {

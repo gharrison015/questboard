@@ -18,12 +18,12 @@
   --ink-2: #4a5080;
   --ink-3: #5d6490;
   --line: #e8e2d6;
-  --good: #1f8a4c;
-  --warn: #b26a00;
-  --bad: #c62828;
-  --save: #1f8a4c;
-  --spend: #2f5fd0;
-  --give: #b0388a;
+  --good: #16703a;
+  --warn: #8a5000;
+  --bad: #b71c1c;
+  --save: #16703a;
+  --spend: #2450b8;
+  --give: #9a2a76;
 }
 
 :root[data-appearance="calm"] {
@@ -35,12 +35,12 @@
   --ink-2: #4a5080;
   --ink-3: #5d6490;
   --line: #dfe2ee;
-  --good: #1f8a4c;
-  --warn: #b26a00;
-  --bad: #c62828;
-  --save: #1f8a4c;
-  --spend: #2f5fd0;
-  --give: #b0388a;
+  --good: #16703a;
+  --warn: #8a5000;
+  --bad: #b71c1c;
+  --save: #16703a;
+  --spend: #2450b8;
+  --give: #9a2a76;
 }
 
 :root[data-appearance="dark"] {

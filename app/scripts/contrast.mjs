@@ -47,6 +47,8 @@ const pairs = [
   ['--ink', '--bg'], ['--ink', '--card'],
   ['--ink-2', '--bg'], ['--ink-2', '--card'],
   ['--ink-3', '--bg'], ['--ink-3', '--card'],
+  ['--ink', '--card-2'], ['--ink', '--bg-wash'],
+  ...['--good', '--warn', '--bad', '--save', '--spend', '--give'].flatMap((c) => [[c, '--bg'], [c, '--card']]),
   ['--accent-ink', '--accent'],
 ]
 const MIN = 4.5
