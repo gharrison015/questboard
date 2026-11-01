@@ -1,11 +1,10 @@
 import { useState } from 'react'
 import { dateKey, dayFull } from '../../engine/dates'
-import { formatCents } from '../../engine/money'
 import type { DateKey, Kid } from '../../engine/types'
 import { useWeek } from '../../state/selectors'
 import { EarnBackPanel } from '../earnback/EarnBackPanel'
 import { SectionHead } from '../primitives/SectionHead'
-import { choresDue, routinesDue, Row, useDayToggles } from './choreRows'
+import { choresDue, PayChip, routinesDue, Row, useDayToggles } from './choreRows'
 import { ChoreIcon } from './ChoreIcon'
 import { DayStrip } from './DayStrip'
 
@@ -35,10 +34,10 @@ export function TodayTab({ kid, onChecked }: { kid: Kid; onChecked?: () => void 
               key={c.id}
               label={c.label}
               state={stateOf(c, selected).box}
-              editable={canEdit && !stateOf(c, selected).verified}
+              editable={canEdit && !stateOf(c, selected).verified && !stateOf(c, selected).rejected}
               height={56}
               lead={<span className="kb-row-ico"><ChoreIcon name={c.icon} /></span>}
-              tail={c.pay > 0 ? <span className="kb-pay">+{formatCents(c.pay)}</span> : null}
+              tail={<PayChip pay={c.pay} closed={ws.closed} />}
               onToggle={() => toggleChore(c, selected)}
             />
           ))}

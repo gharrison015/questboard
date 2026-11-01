@@ -4,7 +4,7 @@ import { formatCents } from '../../engine/money'
 import type { DateKey, Kid } from '../../engine/types'
 import { useWeek } from '../../state/selectors'
 import { ChoreIcon } from './ChoreIcon'
-import { choresDue, routinesDue, Row, useDayToggles } from './choreRows'
+import { choresDue, PayChip, routinesDue, Row, useDayToggles } from './choreRows'
 import { DayDetail } from './DayDetail'
 
 /** The shell swipes between kids on <main>; a sideways drag in the day row belongs to the row. */
@@ -75,10 +75,10 @@ export function WeekTab({ kid, onChecked }: { kid: Kid; onChecked?: () => void }
                       label={c.label}
                       title={c.label}
                       state={s.box}
-                      editable={isToday && !s.verified}
+                      editable={isToday && !s.verified && !s.rejected}
                       height={48}
                       lead={<span className="kb-row-ico"><ChoreIcon name={c.icon} /></span>}
-                      tail={c.pay > 0 ? <span className="kb-pay">+{formatCents(c.pay)}</span> : null}
+                      tail={<PayChip pay={c.pay} closed={ws.closed} />}
                       onToggle={() => toggleChore(c, d)}
                     />
                   )

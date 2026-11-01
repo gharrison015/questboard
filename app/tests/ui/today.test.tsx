@@ -6,7 +6,9 @@ import { KidBoard } from '../../src/ui/kid/KidBoard'
 import { mathLineText } from '../../src/ui/kid/MathLine'
 import { Toaster } from '../../src/ui/primitives/Toaster'
 import type { WeekState } from '../../src/engine/week'
-import { makeFamily, nolan, TRASH } from '../fixtures'
+import type { QBEvent } from '../../src/engine/types'
+import { ParentProvider } from '../../src/ui/parent/useParent'
+import { ev, makeFamily, nolan, TRASH } from '../fixtures'
 
 function ws(patch: Partial<WeekState>): WeekState {
   return {
@@ -133,5 +135,51 @@ describe('Today tab', () => {
     fireEvent.click(row)
     await new Promise((r) => setTimeout(r, 20))
     expect((await adapter.load()).events.filter((e) => e.type === 'chore.unchecked')).toHaveLength(0)
+  })
+})
+
+describe('Ruling 24 and I5 on the kid board', () => {
+  const NOW = new Date(2026, 10, 4, 12, 0, 0)
+  const at = (h: number): string => new Date(2026, 10, 4, h).toISOString()
+  beforeEach(() => {
+    sessionStorage.clear()
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(NOW)
+  })
+  afterEach(() => vi.useRealTimers())
+
+  async function mountWith(events: QBEvent[]) {
+    const adapter = new InMemoryAdapter()
+    await adapter.saveFamily(makeFamily({ createdAt: '2026-11-01T00:00:00.000Z' }))
+    await adapter.appendEvents(events)
+    render(<StoreProvider adapter={adapter}><ParentProvider><Board /><Toaster /></ParentProvider></StoreProvider>)
+    await screen.findByRole('navigation', { name: 'Sections' })
+    return adapter
+  }
+
+  it('a rejected chore is read-only for the kid and says a grown-up said not yet', async () => {
+    const adapter = await mountWith([
+      ev({ type: 'chore.checked', kidId: nolan, choreId: TRASH, date: '2026-11-04' }, at(9)),
+      ev({ type: 'chore.rejected', kidId: nolan, choreId: TRASH, date: '2026-11-04' }, at(10)),
+    ])
+    const row = screen.getByRole('button', { name: /Take out trash/ })
+    expect(row).toHaveAttribute('aria-disabled', 'true')
+    expect(row).toHaveAttribute('data-state', 'rejected')
+    expect(row).toHaveTextContent('A grown-up said not yet')
+    fireEvent.click(row)
+    await new Promise((r) => setTimeout(r, 20))
+    expect((await adapter.load()).events.filter((e) => e.type === 'chore.checked')).toHaveLength(1)
+  })
+
+  it('after an early close the pay chips read closed and earn-back is hidden', async () => {
+    await mountWith([
+      ev({ type: 'deduction.logged', kidId: nolan, reasonId: 'r-yelling', amount: 100, date: '2026-11-03' }, at(8)),
+      ev({ type: 'week.closed', kidId: nolan, weekStart: '2026-11-01', balance: 900 }, at(11)),
+    ])
+    const row = screen.getByRole('button', { name: /Take out trash/ })
+    expect(row).toHaveTextContent('closed')
+    expect(row).not.toHaveTextContent('+$1')
+    expect(screen.queryByText('Earn it back')).toBeNull()
+    expect(screen.getByLabelText('Balance $9')).toBeInTheDocument()
   })
 })

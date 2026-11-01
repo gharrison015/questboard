@@ -3,6 +3,7 @@ import { newId } from '../../engine/ids'
 import { formatCents, effectiveMoney } from '../../engine/money'
 import type { Kid, QBEvent, Reason } from '../../engine/types'
 import { useActions, useStore } from '../../state/store'
+import { useWeek } from '../../state/selectors'
 import { SectionHead } from '../primitives/SectionHead'
 import { useToast } from '../primitives/Toaster'
 import { useParent } from './useParent'
@@ -13,12 +14,15 @@ export function DeductPanel({ kid }: { kid: Kid }) {
   const { append } = useActions()
   const toast = useToast()
   const parent = useParent()
+  const ws = useWeek(kid)
   if (!family) return null
+  // An early close freezes the week, so a deduction now would be recorded and never counted (I5).
+  const closed = ws.closed
   const fallback = effectiveMoney(family, kid).deductionDefault
 
   const log = (reason: Reason): void => {
     const amount = reason.amount ?? fallback
-    if (amount <= 0) return
+    if (amount <= 0 || closed) return
     const at = new Date()
     const logged: QBEvent = {
       id: newId(), at: at.toISOString(), type: 'deduction.logged',
@@ -42,16 +46,18 @@ export function DeductPanel({ kid }: { kid: Kid }) {
   return (
     <section className="pr-section" aria-label="Log a deduction">
       <SectionHead icon="minus" title="Log a deduction" />
+      {closed ? <p className="pr-quiet" role="note">This week is closed. New deductions start next week.</p> : null}
       <div className="pr-reasons">
         {family.reasons.map((r) => {
           const amount = r.amount ?? fallback
+          const ok = amount > 0 && !closed
           return (
             <button
               key={r.id}
               type="button"
               className="pr-reason"
-              aria-disabled={amount > 0 ? undefined : 'true'}
-              onClick={amount > 0 ? () => log(r) : undefined}
+              aria-disabled={ok ? undefined : 'true'}
+              onClick={ok ? () => log(r) : undefined}
             >
               <span className="pr-emoji" aria-hidden="true">{r.emoji}</span>
               <span className="pr-reason-label">{r.label}</span>

@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react'
-import { currentWeekStart } from '../../engine/closeWeeks'
+import { closeCurrentWeek, currentWeekStart } from '../../engine/closeWeeks'
+import { addDays } from '../../engine/dates'
+import { closeEnd } from '../../engine/ledger'
 import { newId } from '../../engine/ids'
 import { formatCents } from '../../engine/money'
 import type { Kid, PayHandles } from '../../engine/types'
@@ -17,12 +19,23 @@ const SERVICES: { key: Service; name: string; url(handle: string, dollars: strin
   { key: 'venmo', name: 'Venmo', url: (h, d) => `https://venmo.com/${h}?txn=pay&amount=${d}` },
 ]
 
+/** The URL when it parses as https, otherwise null. Other schemes (javascript:, http:) are never opened. */
+export function httpsUrl(raw: string | undefined): string | null {
+  if (!raw) return null
+  try {
+    const u = new URL(raw.trim())
+    return u.protocol === 'https:' ? u.href : null
+  } catch {
+    return null
+  }
+}
+
 /** 1250 becomes "12.50", 1200 becomes "12". */
 const dollars = (c: number): string => (c % 100 === 0 ? String(c / 100) : (c / 100).toFixed(2))
 
 /** Payday: unsplit coins, jar totals, an early close, payouts for Spend and Save, and Donate for Give. */
 export function PaydayPanel({ kid }: { kid: Kid }) {
-  const { family, now } = useStore()
+  const { family, events, now } = useStore()
   const { append } = useActions()
   const toast = useToast()
   const j = useJars(kid)
@@ -40,11 +53,12 @@ export function PaydayPanel({ kid }: { kid: Kid }) {
     setConfirm(false)
     if (closeBusy.current) return
     closeBusy.current = true
-    append([{
-      id: newId(), at: new Date().toISOString(), type: 'week.closed',
-      kidId: kid.id, weekStart: currentWeekStart(family, now), balance: ws.balance,
-    }])
-      .then(() => toast.show(`Closed the week. ${formatCents(ws.balance)} to split.`))
+    // Earlier weeks that are due close first, so "Close week now" never skips one (I1).
+    const out = closeCurrentWeek(family, kid, events, new Date())
+    const mine = out.find((e) => e.type === 'week.closed' && e.kidId === kid.id && closeEnd(e) === addDays(currentWeekStart(family, now), 6))
+    const balance = mine && mine.type === 'week.closed' ? mine.balance : 0
+    append(out)
+      .then(() => toast.show(`Closed the week. ${formatCents(balance)} to split.`))
       .catch(fail)
       .finally(() => { closeBusy.current = false })
   }
@@ -59,11 +73,10 @@ export function PaydayPanel({ kid }: { kid: Kid }) {
     guarded(() => append([{ id: newId(), at: new Date().toISOString(), type: 'jar.paidOut', kidId: kid.id, jar, amount, via }]).catch(fail))
   }
 
-  const donate = (): void => {
+  const donate = (e: React.MouseEvent): void => {
     const charity = kid.charity
-    if (!charity || j.give <= 0) return
-    if (payBusy.current) return
-    if (charity.url) window.open(charity.url, '_blank', 'noopener,noreferrer')
+    // The link opens the charity page on its own; this only records the donation once.
+    if (!charity || j.give <= 0 || payBusy.current) { e.preventDefault(); return }
     guarded(() => append([{ id: newId(), at: new Date().toISOString(), type: 'jar.donated', kidId: kid.id, amount: j.give, to: charity.name }])
       .then(() => toast.show(`Recorded ${formatCents(j.give)} to ${charity.name}`))
       .catch(fail))
@@ -105,6 +118,7 @@ export function PaydayPanel({ kid }: { kid: Kid }) {
   }
 
   const charity = kid.charity
+  const donateUrl = httpsUrl(charity?.url)
   return (
     <section className="pr-section" aria-label="Payday">
       <SectionHead icon="coin" title="Payday" />
@@ -121,14 +135,27 @@ export function PaydayPanel({ kid }: { kid: Kid }) {
         <p className="pr-pay-head">Donate Give: {formatCents(j.give)}</p>
         {charity ? (
           <>
-            <Button
-              variant="quiet"
-              aria-disabled={j.give > 0 && !paying ? undefined : 'true'}
-              onClick={j.give > 0 ? donate : undefined}
-            >
-              {charity.url ? `Donate to ${charity.name}` : `Record donation to ${charity.name}`}
-            </Button>
-            {charity.url ? null : <p className="pr-quiet">Record it, then donate in your own way</p>}
+            {donateUrl ? (
+              <a
+                className="qb-btn qb-btn-quiet pr-link"
+                href={donateUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-disabled={j.give > 0 && !paying ? undefined : 'true'}
+                onClick={donate}
+              >
+                Donate to {charity.name}
+              </a>
+            ) : (
+              <Button
+                variant="quiet"
+                aria-disabled={j.give > 0 && !paying ? undefined : 'true'}
+                onClick={j.give > 0 ? donate : undefined}
+              >
+                Record donation to {charity.name}
+              </Button>
+            )}
+            {donateUrl ? null : <p className="pr-quiet">{charity.url ? 'That donation link is not a secure https link, so it is not opened. ' : ''}Record it, then donate in your own way</p>}
           </>
         ) : (
           <p className="pr-quiet">Add a charity in Settings</p>

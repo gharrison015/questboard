@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { StoreProvider, useActions, type Actions } from '../../src/state/store'
 import { AppShell } from '../../src/ui/shell/AppShell'
@@ -193,8 +193,7 @@ describe('parent view', () => {
     expect((await stored(adapter)).find((e) => e.type === 'jar.paidOut')).toMatchObject({ kidId: nolan, jar: 'spend', amount: 500, via: 'paypal' })
   })
 
-  it('Donate opens the charity url and records jar.donated; without a url it only records', async () => {
-    const open = vi.spyOn(window, 'open').mockReturnValue(null)
+  it('Donate is a safe https link that records jar.donated; other schemes only record', async () => {
     const events = [
       ev({ type: 'week.closed', kidId: nolan, weekStart: '2026-10-25', balance: 1200 }, AT),
       ev({ type: 'jar.allocated', kidId: nolan, jar: 'give', amount: 300 }, AT),
@@ -202,11 +201,40 @@ describe('parent view', () => {
     const family = makeFamily()
     family.kids[0].charity = { name: 'Animal Rescue', url: 'https://example.org/give' }
     const { adapter } = await mount({ family: { kids: family.kids }, events })
-    fireEvent.click(screen.getByRole('button', { name: 'Donate to Animal Rescue' }))
+    const link = screen.getByRole('link', { name: 'Donate to Animal Rescue' })
+    expect(link).toHaveAttribute('href', 'https://example.org/give')
+    expect(link).toHaveAttribute('target', '_blank')
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+    fireEvent.click(link)
     await waitFor(async () => expect((await stored(adapter)).some((e) => e.type === 'jar.donated')).toBe(true))
-    expect(open).toHaveBeenCalledWith('https://example.org/give', '_blank', 'noopener,noreferrer')
     expect((await stored(adapter)).find((e) => e.type === 'jar.donated')).toMatchObject({ amount: 300, to: 'Animal Rescue' })
-    open.mockRestore()
+  })
+
+  it('a javascript: or http: charity url is never linked', async () => {
+    for (const url of ['javascript:alert(1)', 'http://example.org/give']) {
+      const family = makeFamily()
+      family.kids[0].charity = { name: 'Animal Rescue', url }
+      await mount({
+        family: { kids: family.kids },
+        events: [
+          ev({ type: 'week.closed', kidId: nolan, weekStart: '2026-10-25', balance: 1200 }, AT),
+          ev({ type: 'jar.allocated', kidId: nolan, jar: 'give', amount: 300 }, AT),
+        ],
+      })
+      expect(screen.queryByRole('link', { name: /Donate to/ })).toBeNull()
+      expect(screen.getByRole('button', { name: 'Record donation to Animal Rescue' })).toBeInTheDocument()
+      cleanup()
+    }
+  })
+
+  it('I5: after an early close, deduction chips are disabled with a note', async () => {
+    const { adapter } = await mount({ events: [ev({ type: 'week.closed', kidId: nolan, weekStart: '2026-11-01', balance: 1000 }, AT)] })
+    expect(screen.getByText('This week is closed. New deductions start next week.')).toBeInTheDocument()
+    const chip = screen.getByRole('button', { name: /Yelling/ })
+    expect(chip).toHaveAttribute('aria-disabled', 'true')
+    fireEvent.click(chip)
+    await new Promise((r) => setTimeout(r, 20))
+    expect((await stored(adapter)).some((e) => e.type === 'deduction.logged')).toBe(false)
   })
 
   it('shows the missed approvals note once and remembers a dismissal', async () => {
@@ -272,7 +300,6 @@ describe('parent view fixes', () => {
   })
 
   it('a double click on Donate records one jar.donated', async () => {
-    const open = vi.spyOn(window, 'open').mockReturnValue(null)
     const family = makeFamily()
     family.kids[0].charity = { name: 'Animal Rescue', url: 'https://example.org/give' }
     const { adapter } = await mount({
@@ -282,14 +309,13 @@ describe('parent view fixes', () => {
         ev({ type: 'jar.allocated', kidId: nolan, jar: 'give', amount: 300 }, AT),
       ],
     })
-    const btn = screen.getByRole('button', { name: 'Donate to Animal Rescue' })
-    fireEvent.click(btn)
-    fireEvent.click(btn)
+    const link = screen.getByRole('link', { name: 'Donate to Animal Rescue' })
+    fireEvent.click(link)
+    // The second tap is cancelled, so the link does not open a second tab either.
+    expect(fireEvent.click(link)).toBe(false)
     await waitFor(async () => expect((await stored(adapter)).some((e) => e.type === 'jar.donated')).toBe(true))
     await new Promise((r) => setTimeout(r, 30))
     expect((await stored(adapter)).filter((e) => e.type === 'jar.donated')).toHaveLength(1)
-    expect(open).toHaveBeenCalledTimes(1)
-    open.mockRestore()
   })
 
   it('Close week now fires once and then disables', async () => {

@@ -350,3 +350,18 @@ describe('parseImport validation', () => {
     expect('error' in parseImport(JSON.stringify(base()))).toBe(false)
   })
 })
+
+describe('Caregivers block', () => {
+  beforeEach(() => {
+    sessionStorage.clear()
+    localStorage.clear()
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(NOW)
+  })
+  afterEach(() => vi.useRealTimers())
+
+  it('says that sharing comes with sync', async () => {
+    await mount()
+    expect(screen.getByRole('region', { name: 'Caregivers' })).toHaveTextContent('Sharing with another phone comes with sync. For now, one device runs the board.')
+  })
+})

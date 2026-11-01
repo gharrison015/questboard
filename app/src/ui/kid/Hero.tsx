@@ -1,6 +1,7 @@
 import { THEMES } from '../../config/themes'
 import type { Grade, Kid } from '../../engine/types'
 import { formatCents } from '../../engine/money'
+import { displayBalance } from '../../engine/week'
 import { useJars, useWeek } from '../../state/selectors'
 import { Icon } from '../primitives/Icon'
 import { MathLine } from './MathLine'
@@ -19,7 +20,8 @@ export function Hero({ kid, hopKey }: HeroProps) {
   const ws = useWeek(kid)
   const jars = useJars(kid)
   const total = ws.start + ws.pay
-  const pct = total > 0 ? Math.min(100, Math.max(0, Math.round((ws.balance / total) * 100))) : 0
+  const shown = displayBalance(ws)
+  const pct = total > 0 ? Math.min(100, Math.max(0, Math.round((shown / total) * 100))) : 0
   const fmt = (c: number): string => formatCents(c, { cents: ws.useCents })
   const src = `${import.meta.env.BASE_URL}buddies/${THEMES[kid.theme].img}`
   return (
@@ -39,7 +41,7 @@ export function Hero({ kid, hopKey }: HeroProps) {
           <h2 className="kb-name">{kid.name}</h2>
           <span className="kb-grade">{GRADE_LABEL[kid.grade]}</span>
         </div>
-        <p className="kb-balance" aria-label={`Balance ${fmt(ws.balance)}`}>{fmt(ws.balance)}</p>
+        <p className="kb-balance" aria-label={`Balance ${fmt(shown)}`}>{fmt(shown)}</p>
         <div className="kb-bar" role="progressbar" aria-label="Balance this week" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}>
           <div className="kb-bar-fill" style={{ width: `${pct}%` }} />
         </div>

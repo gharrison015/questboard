@@ -311,6 +311,12 @@
   background: var(--good);
   color: var(--card);
 }
+.kb-box[data-state="rejected"] {
+  border-color: var(--bad);
+  background: var(--card);
+  color: var(--bad);
+}
+.kb-pay-closed { color: var(--ink-2); font-weight: 700; }
 .kb-earnback { display: grid; gap: 10px; }
 .kb-earnback-copy { margin: 0; font-weight: 700; color: var(--ink-2); }
 

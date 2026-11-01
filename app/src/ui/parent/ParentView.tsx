@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { currentWeekStart, lastWeekMissedApprovals } from '../../engine/closeWeeks'
 import { formatCents } from '../../engine/money'
+import { displayBalance } from '../../engine/week'
 import type { Kid } from '../../engine/types'
 import { useJars, useWeek } from '../../state/selectors'
 import { useKid, useStore } from '../../state/store'
+import { useDerived } from '../../state/derived'
 import { MathLine } from '../kid/MathLine'
 import { Button } from '../primitives/Button'
 import { Card } from '../primitives/Card'
@@ -24,7 +26,7 @@ function BalanceCard({ kid }: { kid: Kid }) {
   return (
     <Card className="pr-balance" aria-label="Balance">
       <SectionHead icon="coin" title={kid.name} meta={ws.closed ? 'Week closed' : 'This week'} />
-      <p className="pr-balance-amt">{formatCents(ws.balance)}</p>
+      <p className="pr-balance-amt">{formatCents(displayBalance(ws))}</p>
       <MathLine ws={ws} />
       <p className="pr-line">
         Save {formatCents(j.save)}, Spend {formatCents(j.spend)}, Give {formatCents(j.give)}, to split {formatCents(j.unsplit)}
@@ -36,10 +38,11 @@ function BalanceCard({ kid }: { kid: Kid }) {
 /** One dismissible note per kid per week. The dismissal is remembered on this device. */
 function MissedNote({ kid }: { kid: Kid }) {
   const { family, events, now } = useStore()
+  const prep = useDerived()
   const storageKey = family ? `missed-note:${kid.id}:${currentWeekStart(family, now)}` : ''
   const [gone, setGone] = useState<string | null>(null)
   if (!family) return null
-  const missed = lastWeekMissedApprovals(family, kid, events, now)
+  const missed = lastWeekMissedApprovals(family, kid, events, now, prep)
   let dismissed = gone === storageKey
   try { dismissed = dismissed || localStorage.getItem(storageKey) === '1' } catch { /* storage blocked */ }
   if (missed <= 0 || dismissed) return null

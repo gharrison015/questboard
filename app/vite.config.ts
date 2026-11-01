@@ -7,10 +7,11 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       filename: 'sw.js',
       workbox: {
         cacheId: 'qb',
+        clientsClaim: true,
         cleanupOutdatedCaches: true,
         navigateFallback: '/questboard/index.html',
         navigateFallbackDenylist: [/^\/questboard\/prototype\//],

@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { isFold } from '../../app/mode'
+import { useApplyUpdateWhenIdle } from '../../app/swUpdate'
 import { sessionValid } from '../../security/session'
 import { activeKids, useActions, useKid, useStore } from '../../state/store'
 import { seedDemoFamily } from '../../state/devSeed'
@@ -39,10 +40,13 @@ function Shell() {
     void seedDemoFamily().then((s) => replaceAll(s.family, s.events))
   }, [family, replaceAll])
 
-  // The parent session expires on the minute tick.
+  // Backstop for the store's exact expiry timer: never show the parent view on a stale session.
   useEffect(() => {
     if (view === 'parent' && !sessionValid(parentUnlockedAt, now.getTime())) lockParent()
   }, [view, parentUnlockedAt, now, lockParent])
+
+  // A waiting app update applies only on the idle kid board (or the read-only TV board).
+  useApplyUpdateWhenIdle(!!family && !!kid && view === 'kid' && !gridOpen, now)
 
   const step = (delta: number): void => {
     if (!kid) return

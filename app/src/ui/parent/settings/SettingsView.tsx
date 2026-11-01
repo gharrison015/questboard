@@ -16,6 +16,14 @@ import '../../../styles/settings.css'
 
 interface Section { id: string; title: string; icon: IconName; body: ReactNode }
 
+function Caregivers() {
+  return (
+    <div className="st-body">
+      <p className="st-hint">Sharing with another phone comes with sync. For now, one device runs the board.</p>
+    </div>
+  )
+}
+
 const SECTIONS: Section[] = [
   { id: 'money', title: 'Money', icon: 'coin', body: <MoneySettings /> },
   { id: 'verification', title: 'Verification', icon: 'check', body: <VerificationSettings /> },
@@ -25,6 +33,7 @@ const SECTIONS: Section[] = [
   { id: 'kids', title: 'Kids', icon: 'family', body: <KidsEditor /> },
   { id: 'appearance', title: 'Appearance', icon: 'settings', body: <AppearanceSettings /> },
   { id: 'pay', title: 'Pay handles', icon: 'pay', body: <PayHandlesSettings /> },
+  { id: 'caregivers', title: 'Caregivers', icon: 'family', body: <Caregivers /> },
   { id: 'data', title: 'Data', icon: 'shield', body: <DataSettings /> },
 ]
 

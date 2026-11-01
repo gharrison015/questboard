@@ -27,7 +27,8 @@ export function EarnBackPanel({ kid, onHop }: { kid: Kid; onHop?: () => void }) 
   if (!family) return null
   const money = effectiveMoney(family, kid)
   const room = earnBackRoom(ws)
-  if (!money.earnBackEnabled || (room === 0 && !subject)) return null
+  // A closed week cannot take earn-back, so the panel leaves until the next week opens (I5).
+  if (!money.earnBackEnabled || ws.closed || (room === 0 && !subject)) return null
 
   return (
     <Card className="kb-earnback" aria-label="Earn it back">
