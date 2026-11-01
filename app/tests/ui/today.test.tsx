@@ -6,7 +6,7 @@ import { KidBoard } from '../../src/ui/kid/KidBoard'
 import { mathLineText } from '../../src/ui/kid/MathLine'
 import { Toaster } from '../../src/ui/primitives/Toaster'
 import type { WeekState } from '../../src/engine/week'
-import { makeFamily, nolan } from '../fixtures'
+import { makeFamily, nolan, TRASH } from '../fixtures'
 
 function ws(patch: Partial<WeekState>): WeekState {
   return {
@@ -93,9 +93,45 @@ describe('Today tab', () => {
     expect(sessionStorage.getItem(`celebrated:${nolan}:2026-11-04`)).not.toBeNull()
     fireEvent.click(screen.getByRole('dialog', { name: 'Perfect day' }))
     expect(screen.queryByText('Perfect day, Nolan!')).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: /Make your bed/ }))
-    fireEvent.click(screen.getByRole('button', { name: /Make your bed/ }))
-    await new Promise((r) => setTimeout(r, 20))
+    const bed = () => screen.getByRole('button', { name: /Make your bed/ })
+    fireEvent.click(bed())
+    await waitFor(() => expect(bed()).toHaveAttribute('data-state', 'empty'))
+    fireEvent.click(bed())
+    await waitFor(() => expect(bed()).toHaveAttribute('data-state', 'done'))
     expect(screen.queryByText('Perfect day, Nolan!')).toBeNull()
+  })
+
+  it('double tap writes checked then unchecked, never two checks', async () => {
+    const adapter = await mount()
+    const row = screen.getByRole('button', { name: /Make your bed/ })
+    fireEvent.click(row)
+    fireEvent.click(row)
+    await waitFor(async () => expect((await adapter.load()).events.filter((e) => e.type.startsWith('chore.')).length).toBe(2))
+    const types = (await adapter.load()).events.filter((e) => e.type.startsWith('chore.')).map((e) => e.type)
+    expect(types).toEqual(['chore.checked', 'chore.unchecked'])
+  })
+
+  it('shows a paid chore as pending until it is verified', async () => {
+    await mount()
+    fireEvent.click(screen.getByRole('button', { name: /Take out trash/ }))
+    await waitFor(() => expect(screen.getByRole('button', { name: /Take out trash/ })).toHaveAttribute('data-state', 'pending'))
+    expect(document.querySelector('.kb-box[data-state="pending"]')).not.toBeNull()
+  })
+
+  it('locks a verified chore', async () => {
+    const adapter = new InMemoryAdapter()
+    await adapter.saveFamily(makeFamily())
+    const at = new Date().toISOString()
+    await adapter.appendEvents([
+      { id: 'v1', at, type: 'chore.checked', kidId: nolan, choreId: TRASH, date: '2026-11-04' },
+      { id: 'v2', at, type: 'chore.verified', kidId: nolan, choreId: TRASH, date: '2026-11-04' },
+    ])
+    render(<StoreProvider adapter={adapter}><Board /></StoreProvider>)
+    const row = await screen.findByRole('button', { name: /Take out trash/ })
+    expect(row).toHaveAttribute('data-state', 'verified')
+    expect(row).toHaveAttribute('aria-disabled', 'true')
+    fireEvent.click(row)
+    await new Promise((r) => setTimeout(r, 20))
+    expect((await adapter.load()).events.filter((e) => e.type === 'chore.unchecked')).toHaveLength(0)
   })
 })

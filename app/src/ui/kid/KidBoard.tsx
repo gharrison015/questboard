@@ -32,7 +32,7 @@ function Board({ kid }: { kid: Kid }) {
   const hop = useCallback(() => setHopKey((k) => k + 1), [])
 
   return (
-    <div className="kb">
+    <div className="kb-frame"><div className="kb">
       <Hero kid={kid} hopKey={hopKey} />
       <div className="kb-right">
         <TabBar tabs={TABS} active={tab} onChange={setTab} />
@@ -44,7 +44,7 @@ function Board({ kid }: { kid: Kid }) {
         </div>
       </div>
       <Celebration kid={kid} date={today} perfect={perfect} />
-    </div>
+    </div></div>
   )
 }
 

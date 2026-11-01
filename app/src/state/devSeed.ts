@@ -1,4 +1,4 @@
-import { dateKey, parseKey, weekDays, weekStartKey } from '../engine/dates'
+import { addDays, dateKey, parseKey, weekStartKey } from '../engine/dates'
 import { newId } from '../engine/ids'
 import { newFamily } from '../engine/reducer'
 import type { Chore, Family, Kid, QBEvent } from '../engine/types'
@@ -58,12 +58,13 @@ export async function seedDemoFamily(now: Date = new Date()): Promise<{ family: 
     events.push({ id: newId(), at, type: 'chore.checked', kidId: nKid.id, choreId: c.id, date: today })
   }
   events.push({ id: newId(), at, type: 'chore.checked', kidId: mKid.id, choreId: mKid.chores[0].id, date: today })
-  // Two deductions this week: Monday $1 (not listening), Wednesday $0.50 (yelling). Makenna has none.
-  const days = weekDays(weekStartKey(today, base.money.weekStartDay))
+  // Two deductions this week, never in the future: today and the day before (or the week start).
+  const weekStart = weekStartKey(today, base.money.weekStartDay)
+  const before = addDays(today, -1) < weekStart ? weekStart : addDays(today, -1)
   const reason = (label: string) => family.reasons.find((r) => r.label === label) ?? family.reasons[0]
   events.push(
-    { id: newId(), at, type: 'deduction.logged', kidId: nKid.id, reasonId: reason('Not listening').id, amount: 100, date: days[(1 - base.money.weekStartDay + 7) % 7] },
-    { id: newId(), at, type: 'deduction.logged', kidId: nKid.id, reasonId: reason('Yelling').id, amount: 50, date: days[(3 - base.money.weekStartDay + 7) % 7] },
+    { id: newId(), at, type: 'deduction.logged', kidId: nKid.id, reasonId: reason('Not listening').id, amount: 100, date: before },
+    { id: newId(), at, type: 'deduction.logged', kidId: nKid.id, reasonId: reason('Yelling').id, amount: 50, date: today },
   )
   return { family, events }
 }

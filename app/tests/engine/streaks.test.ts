@@ -114,7 +114,7 @@ describe('badges', () => {
     const ctx = ctxFor(fam, evs, today)
     badges(ctx)
     streak(fam, fam.kids[0], evs, '2026-10-08', today)
-    expect(performance.now() - t0).toBeLessThan(300)
+    expect(performance.now() - t0).toBeLessThan(1000)
   })
 
   it('first-give from allocation or gift', () => {

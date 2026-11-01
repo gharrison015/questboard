@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { choreDayStateLive, liveEvents } from '../../engine/week'
 import { dateKey, dayFull, parseKey } from '../../engine/dates'
 import { formatCents } from '../../engine/money'
@@ -19,6 +19,7 @@ function Box({ state }: { state: BoxState }) {
   return (
     <span className="kb-box" data-state={state} aria-hidden="true">
       {state === 'done' || state === 'verified' ? <Icon name="check" size={20} /> : null}
+      {state === 'pending' ? <Icon name="routine" size={16} /> : null}
     </span>
   )
 }
@@ -65,6 +66,12 @@ export function TodayTab({ kid, onChecked }: { kid: Kid; onChecked?: () => void 
   const [picked, setPicked] = useState<DateKey | null>(null)
   const selected = picked && ws.days.includes(picked) ? picked : today
   const live = useMemo(() => liveEvents(events), [events])
+  // Desired state of each toggle that was tapped but whose event is not in `events` yet, keyed by event id.
+  const inflight = useRef(new Map<string, { want: boolean; eventId: string }>())
+  useEffect(() => {
+    const ids = new Set(events.map((e) => e.id))
+    for (const [k, v] of inflight.current) if (ids.has(v.eventId)) inflight.current.delete(k)
+  }, [events])
   if (!family) return null
 
   const dow = parseKey(selected).getDay()
@@ -72,7 +79,7 @@ export function TodayTab({ kid, onChecked }: { kid: Kid; onChecked?: () => void 
   const chores = kid.chores.filter((c) => c.active && c.days.includes(dow))
   const stateOf = (c: Chore): { box: BoxState; verified: boolean; rejected: boolean } => {
     const s = choreDayStateLive(family, kid, c, selected, live, now)
-    const box: BoxState = !s.checked || s.rejected ? 'empty' : s.verified ? 'verified' : s.pending ? 'pending' : 'done'
+    const box: BoxState = !s.checked || s.rejected ? 'empty' : s.verified ? 'verified' : s.pending && c.pay > 0 ? 'pending' : 'done'
     return { box, verified: s.verified, rejected: s.rejected }
   }
   const done = chores.filter((c) => stateOf(c).box !== 'empty').length
@@ -80,8 +87,12 @@ export function TodayTab({ kid, onChecked }: { kid: Kid; onChecked?: () => void 
   const toggleChore = (c: Chore): void => {
     const s = stateOf(c)
     if (s.verified) return
+    const key = `c:${c.id}:${selected}`
+    const pending = inflight.current.get(key)
+    const checkedNow = pending ? pending.want : s.box !== 'empty'
     const base = { id: newId(), at: new Date().toISOString(), kidId: kid.id, choreId: c.id, date: selected }
-    if (s.box === 'empty') {
+    inflight.current.set(key, { want: !checkedNow, eventId: base.id })
+    if (!checkedNow) {
       void append([{ ...base, type: 'chore.checked' }])
       toast.show(`Nice work! ${c.label}`)
       onChecked?.()
@@ -98,9 +109,14 @@ export function TodayTab({ kid, onChecked }: { kid: Kid; onChecked?: () => void 
     return v
   }
   const toggleStep = (routineId: string, stepId: string): void => {
+    const key = `s:${routineId}:${stepId}:${selected}`
+    const pending = inflight.current.get(key)
+    const doneNow = pending ? pending.want : stepDone(routineId, stepId)
+    const id = newId()
+    inflight.current.set(key, { want: !doneNow, eventId: id })
     void append([{
-      id: newId(), at: new Date().toISOString(), type: 'routine.step',
-      kidId: kid.id, routineId, stepId, date: selected, done: !stepDone(routineId, stepId),
+      id, at: new Date().toISOString(), type: 'routine.step',
+      kidId: kid.id, routineId, stepId, date: selected, done: !doneNow,
     }])
   }
   const routines = kid.routineIds

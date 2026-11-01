@@ -1,11 +1,27 @@
 /* Kid board. Colors come from tokens.css only. Layout follows the board's own width (container query). */
 
-.qb-main > .qb-fade {
+.qb-main:has(.kb-frame) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+.qb-main:has(.kb-frame) > .qb-fade {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* The container must be an ancestor of .kb for the @container rules below to match it. */
+.kb-frame {
+  container: kb / inline-size;
+  flex: 1;
+  min-height: 0;
   height: 100%;
 }
 
 .kb {
-  container: kb / inline-size;
   height: 100%;
   min-height: 0;
   display: flex;
@@ -127,7 +143,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 10px;
+  padding: 2px 8px;
   border-radius: 999px;
   background: var(--card);
   border: 2px solid currentColor;
@@ -141,6 +157,11 @@
 .kb-jar-spend { color: var(--spend); }
 .kb-jar-give { color: var(--give); }
 
+@container kb (max-width: 399px) {
+  .kb-jarchip .qb-icon { display: none; }
+  .kb-jars { gap: 4px; }
+}
+
 /* Right pane: tab bar + scrolling panel. Phone: bar at the bottom. */
 .kb-right {
   flex: 1;
@@ -153,11 +174,12 @@
   border-radius: var(--r-md) var(--r-md) 0 0;
 }
 .kb-panel {
+  position: relative;
   order: 1;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 4px 0 8px;
+  padding: 4px 0 calc(8px + env(safe-area-inset-bottom));
 }
 .kb-soon,
 .kb-empty {
@@ -176,12 +198,12 @@
 }
 .kb-days {
   display: grid;
-  grid-template-columns: repeat(7, minmax(48px, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 4px;
 }
 .kb-day {
   min-height: 48px;
-  min-width: 48px;
+  min-width: 44px;
   padding: 2px;
   display: flex;
   flex-direction: column;
@@ -275,7 +297,9 @@
 }
 .kb-box[data-state="pending"] {
   border-color: var(--warn);
-  background: linear-gradient(90deg, var(--warn) 50%, var(--card) 50%);
+  border-style: dashed;
+  background: color-mix(in oklab, var(--warn) 16%, var(--card));
+  color: var(--warn);
 }
 .kb-box[data-state="done"] {
   border-color: var(--good);
