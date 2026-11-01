@@ -36,6 +36,8 @@ export const SECOND_SENTENCES = [
   'The tractor went slowly across the field and the dust rose up.',
 ]
 
+/** Misspellings that are real words, which would make a second option look right. */
+const REAL_WORDS = new Set(['anima', 'ever', 'fiend', 'fried', 'hose', 'hippy', 'hoppy', 'wold'])
 const VOWELS = ['a', 'e', 'i', 'o', 'u']
 
 /** Plausible misspellings: swapped letters, a dropped or doubled letter, a changed vowel. */
@@ -53,7 +55,7 @@ export function misspellings(word: string): string[] {
     for (const v of VOWELS) if (v !== word[i]) out.add(word.slice(0, i) + v + word.slice(i + 1))
   }
   out.delete(word)
-  return [...out]
+  return [...out].filter((w) => !REAL_WORDS.has(w))
 }
 
 function spellOptions(rng: Rng, word: string): { options: string[]; answer: number } {
@@ -81,7 +83,7 @@ export const SECOND: SkillTemplate[] = [
       const a = int(rng, 11, 50)
       const b = int(rng, 1, a - 1)
       const diff = a - b
-      return choice(G, 'Math', 1, `${a}-${b}`, `What is ${a} - ${b}?`, withOptions(rng, String(diff), nearNumbers(rng, diff, 3, { min: 0, max: 50, steps: [1, 2, 10] }), 4))
+      return choice(G, 'Math', 1, `${a}-${b}`, `What is ${a} − ${b}?`, withOptions(rng, String(diff), nearNumbers(rng, diff, 3, { min: 0, max: 50, steps: [1, 2, 10] }), 4))
     },
   },
   {

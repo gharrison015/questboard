@@ -3,7 +3,7 @@ import { pickQuestion, type Question, type Subject } from '../../content/skills'
 import { dateKey } from '../../engine/dates'
 import { newId } from '../../engine/ids'
 import { formatCents, effectiveMoney } from '../../engine/money'
-import type { Kid } from '../../engine/types'
+import type { Grade, Kid } from '../../engine/types'
 import { earnBackRoom } from '../../engine/week'
 import { useWeek } from '../../state/selectors'
 import { useActions, useStore } from '../../state/store'
@@ -11,6 +11,14 @@ import { Button } from '../primitives/Button'
 import { Modal } from '../primitives/Modal'
 import { useToast } from '../primitives/Toaster'
 import { useParent } from '../parent/useParent'
+
+const GRADE_LABEL: Record<Grade, string> = {
+  'Pre-K': 'Pre-K',
+  K: 'Kindergarten',
+  '1st': '1st grade',
+  '2nd': '2nd grade',
+  '3rd+': '3rd grade and up',
+}
 
 const MAX_MISSES = 3
 const CLOSE_MS = 1000
@@ -56,10 +64,7 @@ export function ChallengeModal({ kid, subject, onClose, onHop }: ChallengeModalP
 
   const draw = useCallback((): Question => {
     const used = loadUsed(key)
-    const q = pickQuestion(kid.grade, used, Math.random, subject)
-    used.add(q.id)
-    saveUsed(key, used)
-    return q
+    return pickQuestion(kid.grade, used, Math.random, subject)
   }, [key, kid.grade, subject])
 
   const [q, setQ] = useState<Question>(draw)
@@ -69,6 +74,14 @@ export function ChallengeModal({ kid, subject, onClose, onHop }: ChallengeModalP
   const [note, setNote] = useState('')
   const [won, setWon] = useState<number | 'read' | null>(null)
   const awarding = useRef(false)
+
+  // Marked used after render, so a StrictMode double render never burns two ids.
+  useEffect(() => {
+    const used = loadUsed(key)
+    if (used.has(q.id)) return
+    used.add(q.id)
+    saveUsed(key, used)
+  }, [key, q.id])
   const closeRef = useRef(onClose)
   closeRef.current = onClose
 
@@ -115,7 +128,7 @@ export function ChallengeModal({ kid, subject, onClose, onHop }: ChallengeModalP
     setNote('Try again')
   }
 
-  const title = `${subject}, ${kid.grade}`
+  const title = `${subject}, ${GRADE_LABEL[kid.grade]}`
   const gone = room <= 0 && won === null
   return (
     <Modal open title={title} onClose={onClose} className="kb-challenge">
@@ -128,7 +141,7 @@ export function ChallengeModal({ kid, subject, onClose, onHop }: ChallengeModalP
           {q.parentConfirm ? (
             <div className="kb-ch-read">
               <p className="kb-ch-note">A grown-up checks this one</p>
-              <Button onClick={() => parent.require(() => award('read'))} aria-disabled={won !== null}>
+              <Button onClick={() => { if (won === null) parent.require(() => award('read')) }} aria-disabled={won !== null}>
                 Grown-up: they read it
               </Button>
             </div>

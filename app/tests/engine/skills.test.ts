@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Grade } from '../../src/engine/types'
 import { pickQuestion, SKILLS, subjectsFor } from '../../src/content/skills'
+import { SPELLING } from '../../src/content/skills/second'
 
 function seeded(seed: number): () => number {
   let s = seed >>> 0
@@ -66,4 +67,57 @@ describe('skills library', () => {
     const rng = seeded(5)
     for (let i = 0; i < 30; i++) expect(pickQuestion('2nd', new Set(), rng, 'Spelling').subject).toBe('Spelling')
   })
+
+  describe.each(GRADES)('%s content checks over 200 questions', (g) => {
+    const rng = seeded(21)
+    const qs = Array.from({ length: 200 }, () => pickQuestion(g, new Set(), rng))
+    const WORDS = new Set(SPELLING.map((x) => x.word))
+
+    it('math answers are the true result and never negative', () => {
+      let seen = 0
+      for (const q of qs) {
+        const m = /^What is (\d+) ([+\u2212x-]) (\d+)\?$/.exec(q.prompt)
+        if (!m) continue
+        seen++
+        const a = Number(m[1])
+        const b = Number(m[3])
+        const truth = m[2] === '+' ? a + b : m[2] === 'x' ? a * b : a - b
+        expect(truth).toBeGreaterThanOrEqual(0)
+        expect(q.options?.[q.answer as number]).toBe(String(truth))
+        for (const o of q.options ?? []) expect(Number(o)).toBeGreaterThanOrEqual(0)
+      }
+      if (q0(g)) expect(seen).toBeGreaterThan(0)
+    })
+
+    it('options are unique and Reading has none', () => {
+      for (const q of qs) {
+        if (q.parentConfirm) {
+          expect(q.options).toBeUndefined()
+        } else {
+          expect(new Set(q.options).size).toBe(q.options?.length)
+        }
+      }
+    })
+
+    it('spelling answers come from the word list', () => {
+      for (const q of qs.filter((x) => x.subject === 'Spelling')) {
+        expect(WORDS.has(q.options?.[q.answer as number] ?? '')).toBe(true)
+      }
+    })
+
+    it('2nd grade addition never regroups', () => {
+      for (const q of qs) {
+        const m = /^What is (\d+) \+ (\d+)\?$/.exec(q.prompt)
+        if (!m || (g !== '2nd' && g !== '3rd+')) continue
+        const [a, b] = [Number(m[1]), Number(m[2])]
+        expect((a % 10) + (b % 10)).toBeLessThanOrEqual(9)
+        expect(Math.floor(a / 10) + Math.floor(b / 10)).toBeLessThanOrEqual(9)
+      }
+    })
+  })
 })
+
+/** Pre-K has no number sentences. */
+function q0(g: Grade): boolean {
+  return g !== 'Pre-K'
+}

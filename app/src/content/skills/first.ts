@@ -34,7 +34,7 @@ export const FIRST: SkillTemplate[] = [
       const a = int(rng, 2, 20)
       const b = int(rng, 1, a - 1)
       const diff = a - b
-      return choice(G, 'Math', 1, `${a}-${b}`, `What is ${a} - ${b}?`, withOptions(rng, String(diff), nearNumbers(rng, diff, 3, { min: 0, max: 20 }), 4))
+      return choice(G, 'Math', 1, `${a}-${b}`, `What is ${a} − ${b}?`, withOptions(rng, String(diff), nearNumbers(rng, diff, 3, { min: 0, max: 20 }), 4))
     },
   },
   {

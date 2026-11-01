@@ -46,6 +46,3 @@ export function EarnBackPanel({ kid, onHop }: { kid: Kid; onHop?: () => void }) 
     </Card>
   )
 }
-
-/** Name used by the Today tab. */
-export const EarnBackSlot = EarnBackPanel

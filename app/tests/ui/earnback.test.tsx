@@ -5,6 +5,8 @@ import { InMemoryAdapter } from '../../src/storage/memory'
 import { KidBoard } from '../../src/ui/kid/KidBoard'
 import { ParentProvider } from '../../src/ui/parent/useParent'
 import { Toaster } from '../../src/ui/primitives/Toaster'
+import { ChallengeModal } from '../../src/ui/earnback/ChallengeModal'
+import { hashPin } from '../../src/security/pin'
 import { ev, makeFamily, nolan } from '../fixtures'
 
 function Board() {
@@ -12,16 +14,26 @@ function Board() {
   return kid ? <KidBoard kid={kid} /> : null
 }
 
-async function mount(deduction: number) {
+function Direct() {
+  const kid = useKid()
+  return kid ? <ChallengeModal kid={kid} subject="Math" onClose={() => undefined} /> : null
+}
+
+async function mount(deduction: number, opts: { direct?: boolean; pin?: string } = {}) {
   const adapter = new InMemoryAdapter()
-  await adapter.saveFamily(makeFamily({ createdAt: '2026-11-01T00:00:00.000Z' }))
+  const salt = 'salt'
+  await adapter.saveFamily(makeFamily({
+    createdAt: '2026-11-01T00:00:00.000Z',
+    ...(opts.pin ? { pinSalt: salt, pinHash: await hashPin(opts.pin, salt) } : {}),
+  }))
   if (deduction > 0) {
     await adapter.appendEvents([
       ev({ type: 'deduction.logged', kidId: nolan, reasonId: 'r-yelling', amount: deduction, date: '2026-11-04' }, '2026-11-04T09:00:00'),
     ])
   }
-  render(<StoreProvider adapter={adapter}><ParentProvider><Board /><Toaster /></ParentProvider></StoreProvider>)
-  await screen.findByRole('navigation', { name: 'Sections' })
+  render(<StoreProvider adapter={adapter}><ParentProvider>{opts.direct ? <Direct /> : <Board />}<Toaster /></ParentProvider></StoreProvider>)
+  if (opts.direct) await screen.findByRole('dialog')
+  else await screen.findByRole('navigation', { name: 'Sections' })
   return adapter
 }
 
@@ -48,8 +60,8 @@ describe('Earn it back', () => {
   })
 
   function solve(): number {
-    const prompt = screen.getByText(/What is \d+ [+-] \d+\?/).textContent as string
-    const m = /(\d+) ([+-]) (\d+)/.exec(prompt) as RegExpExecArray
+    const prompt = screen.getByText(/What is \d+ [+\u2212] \d+\?/).textContent as string
+    const m = /(\d+) ([+\u2212]) (\d+)/.exec(prompt) as RegExpExecArray
     return m[2] === '+' ? Number(m[1]) + Number(m[3]) : Number(m[1]) - Number(m[3])
   }
 
@@ -91,5 +103,57 @@ describe('Earn it back', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Grown-up: they read it' }))
     expect(await screen.findByRole('dialog', { name: 'Parent PIN' })).toBeInTheDocument()
     expect(await earned(adapter)).toHaveLength(0)
+  })
+
+  const optionButtons = (): HTMLElement[] =>
+    within(screen.getByRole('dialog')).getAllByRole('button').filter((b) => /^\d+$/.test(b.textContent ?? ''))
+  const promptText = (): string => screen.getByText(/What is \d+ [+\u2212] \d+\?/).textContent ?? ''
+
+  it('subtitle spells out the grade', async () => {
+    await mount(300)
+    fireEvent.click(screen.getByRole('button', { name: /Math/ }))
+    expect(screen.getByRole('dialog', { name: 'Math, 1st grade' })).toBeInTheDocument()
+  })
+
+  it('the third miss draws a new question and resets, and used ids persist', async () => {
+    const adapter = await mount(300)
+    fireEvent.click(screen.getByRole('button', { name: /Math/ }))
+    const first = promptText()
+    const usedKey = 'earnback-used:kid-nolan:2026-11-04'
+    expect(JSON.parse(sessionStorage.getItem(usedKey) ?? '[]')).toHaveLength(1)
+    for (let i = 0; i < 3; i++) {
+      const answer = solve()
+      const wrong = optionButtons().find((b) => !(b as HTMLButtonElement).disabled && Number(b.textContent) !== answer) as HTMLElement
+      fireEvent.click(wrong)
+    }
+    expect(screen.getByText("Let's try a different one")).toBeInTheDocument()
+    expect(promptText()).not.toBe(first)
+    expect(optionButtons().every((b) => !(b as HTMLButtonElement).disabled)).toBe(true)
+    expect(JSON.parse(sessionStorage.getItem(usedKey) ?? '[]')).toHaveLength(2)
+    expect(await earned(adapter)).toHaveLength(0)
+  })
+
+  it('appends nothing when the room is already 0', async () => {
+    const adapter = await mount(0, { direct: true })
+    expect(screen.getByText('You earned it all back')).toBeInTheDocument()
+    expect(within(screen.getByRole('dialog')).queryAllByRole('button').filter((b) => /^\d+$/.test(b.textContent ?? ''))).toHaveLength(0)
+    expect(await earned(adapter)).toHaveLength(0)
+  })
+
+  it('Reading after the PIN appends exactly one event even if clicked twice', async () => {
+    const adapter = await mount(300, { pin: '1234' })
+    fireEvent.click(screen.getByRole('button', { name: /Reading/ }))
+    const btn = screen.getByRole('button', { name: 'Grown-up: they read it' })
+    fireEvent.click(btn)
+    fireEvent.click(btn)
+    const gate = await screen.findByRole('dialog', { name: 'Parent PIN' })
+    for (const d of '1234') fireEvent.click(within(gate).getByRole('button', { name: d }))
+    fireEvent.click(within(gate).getByRole('button', { name: 'Enter' }))
+    await waitFor(async () => expect(await earned(adapter)).toHaveLength(1))
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Parent PIN' })).not.toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: 'Grown-up: they read it' }))
+    expect(screen.queryByRole('dialog', { name: 'Parent PIN' })).not.toBeInTheDocument()
+    expect(await earned(adapter)).toHaveLength(1)
+    expect((await earned(adapter))[0]).toMatchObject({ skill: 'Reading', amount: 100 })
   })
 })
