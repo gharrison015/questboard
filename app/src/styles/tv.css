@@ -1,0 +1,240 @@
+/* TV board. Sized for 1920x1080 and scaled with vw so 1280 to 3840 wide screens hold the same layout.
+   Body text never drops below 28px. No scrolling. */
+
+.tv-board {
+  --tv-body: clamp(28px, 1.5vw, 44px);
+  position: relative;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: 1fr;
+  background: var(--bg-wash);
+  color: var(--ink);
+  font-size: var(--tv-body);
+  line-height: 1.25;
+  padding: clamp(24px, 2vw, 64px);
+  box-sizing: border-box;
+  cursor: none;
+  user-select: none;
+}
+.tv-board h1, .tv-board h2, .tv-board p, .tv-board ul, .tv-board ol, .tv-board dl, .tv-board dd {
+  margin: 0;
+  padding: 0;
+}
+.tv-board ul, .tv-board ol { list-style: none; }
+
+/* Clock, top right */
+.tv-clock {
+  position: absolute;
+  top: clamp(24px, 2vw, 64px);
+  right: clamp(32px, 2.5vw, 80px);
+  text-align: right;
+  z-index: 1;
+}
+.tv-clock-time {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(56px, 3.6vw, 140px);
+  line-height: 1;
+}
+.tv-clock-time small {
+  font-size: 0.4em;
+  font-weight: 700;
+  margin-left: 0.15em;
+  color: var(--ink-2);
+}
+.tv-date {
+  font-size: var(--tv-body);
+  font-weight: 700;
+  color: var(--ink-2);
+}
+
+/* Stage: one kid, two columns */
+.tv-stage {
+  display: grid;
+  grid-template-columns: 45fr 55fr;
+  gap: clamp(24px, 2.5vw, 80px);
+  min-height: 0;
+  animation: tv-fade 300ms ease both;
+}
+@keyframes tv-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.tv-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: clamp(8px, 0.8vw, 24px);
+  min-height: 0;
+  background: radial-gradient(ellipse at 50% 28%, color-mix(in oklab, var(--accent) 22%, transparent), transparent 62%);
+}
+:root[data-appearance="dark"] .tv-hero {
+  background: radial-gradient(ellipse at 50% 28%, color-mix(in oklab, var(--accent) 8%, transparent), transparent 62%);
+}
+.tv-buddy-wrap {
+  width: clamp(360px, 19vw, 720px);
+  height: clamp(360px, 19vw, 720px);
+}
+/* 3D lift: soft shadow under the buddy, with the same float as the kid board. */
+.tv-buddy {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 16px 22px color-mix(in oklab, var(--ink) 28%, transparent));
+  animation: qb-float 4s ease-in-out infinite;
+}
+.tv-name {
+  font-family: var(--font-display);
+  font-size: clamp(72px, 4.2vw, 160px);
+  line-height: 1;
+}
+.tv-grade {
+  font-weight: 700;
+  color: var(--ink-2);
+}
+.tv-balance {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(120px, 7vw, 270px);
+  line-height: 1;
+  color: var(--accent);
+}
+.tv-bar {
+  width: 80%;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--card-2);
+  overflow: hidden;
+}
+.tv-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+}
+.tv-math {
+  font-size: clamp(32px, 1.8vw, 68px);
+  font-weight: 700;
+}
+.tv-streak {
+  display: flex;
+  align-items: center;
+  gap: 0.3em;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+
+/* Right column */
+.tv-side {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(16px, 1.5vw, 48px);
+  min-height: 0;
+  padding-top: clamp(80px, 6vw, 200px);
+}
+.tv-todo {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 0.8vw, 24px);
+  padding: clamp(16px, 1.5vw, 48px);
+  min-height: 0;
+}
+.tv-todo h2 {
+  font-family: var(--font-display);
+  font-size: clamp(36px, 2vw, 76px);
+}
+.tv-todo > ul:first-of-type { display: flex; flex-direction: column; gap: 10px; }
+.tv-todo li {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.tv-tile {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: clamp(56px, 3vw, 112px);
+  height: clamp(56px, 3vw, 112px);
+  border-radius: var(--r-sm);
+  background: var(--card-2);
+  color: var(--ink);
+}
+.tv-todo-label {
+  font-size: clamp(32px, 1.7vw, 64px);
+  font-weight: 700;
+}
+.tv-more, .tv-routines { color: var(--ink-2); font-weight: 700; }
+.tv-alldone {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: clamp(32px, 1.7vw, 64px);
+  font-weight: 700;
+  color: var(--good);
+}
+.tv-routines {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 32px;
+  padding-top: 8px;
+  border-top: 2px solid var(--line);
+}
+.tv-routines li { gap: 12px; }
+.tv-routines li[data-complete="true"] { color: var(--good); }
+
+.tv-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(12px, 1.2vw, 40px);
+  text-align: center;
+}
+.tv-stat dt {
+  font-weight: 700;
+  color: var(--ink-2);
+}
+.tv-stat b {
+  font-family: var(--font-display);
+  font-size: clamp(56px, 3.2vw, 120px);
+  line-height: 1.1;
+}
+.tv-stat-save b { color: var(--save); }
+.tv-stat-give b { color: var(--give); }
+
+/* Rotation dots, bottom center */
+.tv-dots {
+  position: absolute;
+  bottom: clamp(16px, 1.4vw, 48px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 20px;
+}
+.tv-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--card-2);
+  border: 2px solid var(--line);
+}
+.tv-dot[data-current="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.tv-empty {
+  display: grid;
+  place-items: center;
+  text-align: center;
+  font-size: clamp(36px, 2.2vw, 84px);
+  font-weight: 700;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tv-buddy { animation: none; }
+}
