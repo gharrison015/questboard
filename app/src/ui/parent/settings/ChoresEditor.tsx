@@ -92,7 +92,7 @@ export function ChoresEditor({ kidId }: { kidId: string }) {
         <p className="pr-note" role="status"><span>{kid.name} is at the free limit of {limit} active chores. Unlock unlimited chores for {price}, or switch one off first.</span></p>
       ) : null}
       <ul className="st-rows">
-        {kid.chores.map((c) => <ChoreRow key={c.id} kidId={kidId} chore={c} />)}
+        {kid.chores.filter((c) => !c.removed).map((c) => <ChoreRow key={c.id} kidId={kidId} chore={c} />)}
       </ul>
       <Button className="pr-dense" icon="plus" onClick={add}>Add chore</Button>
     </div>

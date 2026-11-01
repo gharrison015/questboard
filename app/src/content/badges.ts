@@ -1,8 +1,9 @@
 import type { DateKey, Family, Kid, QBEvent } from '../engine/types'
 import type { Jars } from '../engine/jars'
-import { choreDayStateLive, liveEvents, type WeekState } from '../engine/week'
+import { choreDayStateLive, type WeekState } from '../engine/week'
 import { dateKey } from '../engine/dates'
-import { dayBuckets, perfectDayKeys, streakReachedOn } from '../engine/streaks'
+import { dayEvents, prepare, type Prepared } from '../engine/ledger'
+import { perfectDayKeys, streakReachedOn } from '../engine/streaks'
 
 export interface BadgeCtx {
   family: Family
@@ -13,7 +14,11 @@ export interface BadgeCtx {
   weeks: WeekState[]
   /** Perfect day keys, computed once by badges() when absent. */
   perfectDays?: DateKey[]
+  /** The prepared ledger, built once by badges() when absent. */
+  prep?: Prepared
 }
+
+const prepOf = (ctx: BadgeCtx): Prepared => ctx.prep ?? prepare(ctx.events)
 
 export interface BadgeDef {
   id: string
@@ -24,19 +29,19 @@ export interface BadgeDef {
 }
 
 function firstLive(ctx: BadgeCtx, pick: (e: QBEvent) => boolean): string | null {
-  const hit = liveEvents(ctx.events).find(pick)
+  const hit = prepOf(ctx).live.find(pick)
   return hit ? hit.at : null
 }
 
 function streakBadge(n: number) {
   return (ctx: BadgeCtx): string | null =>
-    streakReachedOn(ctx.perfectDays ?? perfectDayKeys(ctx.family, ctx.kid, ctx.events, ctx.now), n)
+    streakReachedOn(ctx.perfectDays ?? perfectDayKeys(ctx.family, ctx.kid, ctx.events, ctx.now, prepOf(ctx)), n)
 }
 
 /** The `at` of the live event after which the Save jar first held at least `cents`. */
 function saveReached(ctx: BadgeCtx, cents: number): string | null {
   let save = 0
-  for (const e of liveEvents(ctx.events)) {
+  for (const e of prepOf(ctx).live) {
     if (e.type === 'jar.allocated' && e.kidId === ctx.kid.id && e.jar === 'save') save += e.amount
     else if (e.type === 'jar.gifted' && e.toKidId === ctx.kid.id) save += e.amount
     else if (e.type === 'jar.paidOut' && e.kidId === ctx.kid.id && e.jar === 'save') save = Math.max(0, save - e.amount)
@@ -47,26 +52,21 @@ function saveReached(ctx: BadgeCtx, cents: number): string | null {
 }
 
 function firstFullWeek(ctx: BadgeCtx): string | null {
-  const live = liveEvents(ctx.events)
   for (const ws of ctx.weeks) {
     if (!ws.closed || ws.closedBalance !== ws.start + ws.pay) continue
-    let close: Extract<QBEvent, { type: 'week.closed' }> | undefined
-    for (const e of live) {
-      if (e.type === 'week.closed' && e.kidId === ctx.kid.id && e.weekStart === ws.weekStart) close = e
-    }
-    if (close && !close.inactive) return close.at
+    if (ws.closedAt && !ws.closedInactive) return ws.closedAt
   }
   return null
 }
 
 function firstPaidChore(ctx: BadgeCtx): string | null {
-  const buckets = dayBuckets(ctx.kid, liveEvents(ctx.events))
+  const prep = prepOf(ctx)
   const today = dateKey(ctx.now)
   for (const ws of ctx.weeks) {
     for (const date of ws.days) {
       if (date > today) break
       for (const chore of ctx.kid.chores) {
-        if (chore.pay > 0 && choreDayStateLive(ctx.family, ctx.kid, chore, date, buckets.get(date) ?? [], ctx.now).pays) return date as DateKey
+        if (chore.pay > 0 && choreDayStateLive(ctx.family, ctx.kid, chore, date, dayEvents(prep, ctx.kid.id, date), ctx.now).pays) return date as DateKey
       }
     }
   }
@@ -90,12 +90,13 @@ export const BADGES: BadgeDef[] = [
   { id: 'first-paid-chore', name: 'First Paycheck', emoji: '💵', rule: 'Get paid for a chore', test: firstPaidChore },
   { id: 'earnback-10', name: 'Comeback Kid', emoji: '💪', rule: 'Earn back lost money 10 times',
     test: (ctx) => {
-      const hits = liveEvents(ctx.events).filter((e) => e.type === 'earnback.earned' && e.kidId === ctx.kid.id)
+      const hits = prepOf(ctx).live.filter((e) => e.type === 'earnback.earned' && e.kidId === ctx.kid.id)
       return hits.length >= 10 ? hits[9].at : null
     } },
 ]
 
 export function badges(ctx: BadgeCtx): { def: BadgeDef; earnedAt: string | null }[] {
-  const full: BadgeCtx = { ...ctx, perfectDays: ctx.perfectDays ?? perfectDayKeys(ctx.family, ctx.kid, ctx.events, ctx.now) }
+  const prep = prepOf(ctx)
+  const full: BadgeCtx = { ...ctx, prep, perfectDays: ctx.perfectDays ?? perfectDayKeys(ctx.family, ctx.kid, ctx.events, ctx.now, prep) }
   return BADGES.map((def) => ({ def, earnedAt: def.test(full) }))
 }

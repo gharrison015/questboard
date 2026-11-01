@@ -113,11 +113,15 @@ export function applyFamilyAction(f: Family, a: FamilyAction): Family {
       })
     case 'chore.update':
       return mapKid(f, a.kidId, (k) => {
+        if (a.patch.active === true && k.chores.some((c) => c.id === a.id && c.removed)) return k
         if (a.patch.active === true && activeCount(k.chores, a.id) >= choreLimit(f, k.id)) throw new LimitError('chores')
         return { ...k, chores: k.chores.map((c) => (c.id === a.id ? { ...c, ...a.patch, id: c.id } : c)) }
       })
     case 'chore.remove':
-      return mapKid(f, a.kidId, (k) => ({ ...k, chores: k.chores.filter((c) => c.id !== a.id) }))
+      // Soft delete (Ruling 27): the chore leaves editors and boards, but its earned pay stays derivable.
+      return mapKid(f, a.kidId, (k) => ({
+        ...k, chores: k.chores.map((c) => (c.id === a.id ? { ...c, active: false, removed: true } : c)),
+      }))
     case 'routine.add':
       return { ...f, routines: [...f.routines, { ...a.routine, id: newId() }] }
     case 'routine.update':

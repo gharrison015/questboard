@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { newId } from '../../engine/ids'
 import type { Kid, QBEvent } from '../../engine/types'
 import { useActions, useStore } from '../../state/store'
+import { useDerived } from '../../state/derived'
 import { Button } from '../primitives/Button'
 import { Modal } from '../primitives/Modal'
 import { SectionHead } from '../primitives/SectionHead'
@@ -11,11 +12,12 @@ import { activityRows, redoTargets, undoTargets, type ActivityRow } from './even
 /** This week's events for the kid, newest first, with Undo and Redo. Closed weeks are never listed. */
 export function ThisWeek({ kid }: { kid: Kid }) {
   const { family, events, now } = useStore()
+  const prep = useDerived()
   const { append } = useActions()
   const toast = useToast()
   const [reopen, setReopen] = useState<ActivityRow | null>(null)
   if (!family) return null
-  const rows = activityRows(family, kid, events, now)
+  const rows = activityRows(family, kid, events, now, prep)
 
   const appendUndos = (targets: string[]): void => {
     if (targets.length === 0) return
@@ -34,11 +36,11 @@ export function ThisWeek({ kid }: { kid: Kid }) {
           {rows.map((r) => (
             <li key={r.key} className="pr-row" data-undone={r.undone ? 'true' : undefined}>
               <span className={r.undone ? 'pr-row-main pr-struck' : 'pr-row-main'}>{r.label}</span>
-              {r.closedNote ? <span className="pr-tile-state">Closed</span> : !r.undoable ? null : r.undone ? (
+              {r.closedNote ? <span className="pr-tile-state">Closed</span> : r.undone ? (r.redoable ? (
                 <Button className="pr-dense" variant="quiet" aria-label={`Redo ${r.label}`} onClick={() => appendUndos(redoTargets(events, r.ids))}>Redo</Button>
-              ) : (
+              ) : null) : r.undoable ? (
                 <Button className="pr-dense" variant="quiet" aria-label={`Undo ${r.label}`} onClick={() => (r.reopen ? setReopen(r) : appendUndos(undoTargets(events, r.ids)))}>Undo</Button>
-              )}
+              ) : null}
             </li>
           ))}
         </ul>

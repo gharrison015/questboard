@@ -31,6 +31,8 @@ export interface Chore {
   days: number[]
   pay: Cents
   active: boolean
+  /** Deleted by a parent. Hidden from editors and boards; derivations still read it so earned pay stays. */
+  removed?: boolean
 }
 
 export interface Routine {
@@ -85,7 +87,8 @@ export type EventBody =
   | { type: 'routine.step'; kidId: string; routineId: string; stepId: string; date: DateKey; done: boolean }
   | { type: 'deduction.logged'; kidId: string; reasonId: string; amount: Cents; date: DateKey }
   | { type: 'earnback.earned'; kidId: string; skill: string; amount: Cents; date: DateKey }
-  | { type: 'week.closed'; kidId: string; weekStart: DateKey; balance: Cents; inactive?: boolean }
+  /** `weekStart` is the first day covered; `days` is set when the span is shorter than 7 (after a week start change). */
+  | { type: 'week.closed'; kidId: string; weekStart: DateKey; balance: Cents; inactive?: boolean; days?: number }
   | { type: 'jar.allocated'; kidId: string; jar: JarKey; amount: Cents }
   | { type: 'jar.paidOut'; kidId: string; jar: 'save' | 'spend'; amount: Cents; via: string }
   | { type: 'jar.donated'; kidId: string; amount: Cents; to: string }

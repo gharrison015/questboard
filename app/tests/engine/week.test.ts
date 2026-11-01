@@ -163,3 +163,33 @@ describe('weekState', () => {
     expect(t.start + t.plus - t.minus).toBe(ws.closedBalance)
   })
 })
+
+describe('Ruling 24: the latest verify or reject decides, whatever the kid does after', () => {
+  const d = '2026-11-05'
+  const mk = (type: 'chore.checked' | 'chore.unchecked' | 'chore.verified' | 'chore.rejected', at: string) =>
+    ev({ type, kidId: nolan, choreId: TRASH, date: d }, at)
+
+  it('check, reject, check again stays unpaid after midnight', () => {
+    const f = withMoney({}, 'kid-verify')
+    const evs = [mk('chore.checked', '2026-11-05T17:00:00'), mk('chore.rejected', '2026-11-05T18:00:00'), mk('chore.checked', '2026-11-05T18:05:00')]
+    const s = choreDayState(f, kidOf(f), kidOf(f).chores[3], d, evs, AFTER)
+    expect(s).toMatchObject({ checked: true, rejected: true, pays: false, pending: false })
+    expect(weekState(f, kidOf(f), evs, WS, AFTER).pay).toBe(0)
+  })
+
+  it('a later verify overrides the reject; uncheck still clears', () => {
+    const f = withMoney({}, 'kid-verify')
+    const base = [mk('chore.checked', '2026-11-05T17:00:00'), mk('chore.rejected', '2026-11-05T18:00:00'), mk('chore.checked', '2026-11-05T18:05:00')]
+    expect(choreDayState(f, kidOf(f), kidOf(f).chores[3], d, [...base, mk('chore.verified', '2026-11-05T19:00:00')], AFTER).pays).toBe(true)
+    expect(choreDayState(f, kidOf(f), kidOf(f).chores[3], d, [...base, mk('chore.unchecked', '2026-11-05T19:00:00')], AFTER).checked).toBe(false)
+  })
+
+  it('a removed chore keeps its earned pay (Ruling 27)', () => {
+    const f = withMoney({}, 'kid-verify')
+    const evs = [mk('chore.checked', '2026-11-05T17:00:00'), mk('chore.verified', '2026-11-05T18:00:00')]
+    const before = weekState(f, kidOf(f), evs, WS, NOW).pay
+    const removed: Family = { ...f, kids: f.kids.map((k, i) => (i === 0 ? { ...k, chores: k.chores.map((c) => (c.id === TRASH ? { ...c, active: false, removed: true } : c)) } : k)) }
+    expect(before).toBe(100)
+    expect(weekState(removed, kidOf(removed), evs, WS, NOW).pay).toBe(100)
+  })
+})

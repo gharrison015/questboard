@@ -1,5 +1,5 @@
 import type { Cents, JarKey, QBEvent } from './types'
-import { liveEvents } from './week'
+import { prepare, type Prepared } from './ledger'
 
 export interface Jars {
   save: Cents
@@ -8,18 +8,19 @@ export interface Jars {
   unsplit: Cents
 }
 
-/** Derives a kid's jars from the ledger. Closed balances are read as recorded, never recomputed. */
-export function jars(kidId: string, events: QBEvent[]): Jars {
-  let closedTotal = 0
+/**
+ * Jars from a list of live events in ledger order. Only the latest live close per week counts
+ * (Ruling 23a), so a close, an undo, a second close and a redo never pay the same week twice.
+ * Nothing is clamped: a broken rule shows up as a negative instead of vanishing.
+ */
+export function jarsFromLive(kidId: string, live: Iterable<QBEvent>): Jars {
+  const closes = new Map<string, Cents>()
   let allocatedTotal = 0
   const j: Record<JarKey, Cents> = { save: 0, spend: 0, give: 0 }
-  const take = (jar: JarKey, amount: Cents): void => {
-    j[jar] = Math.max(0, j[jar] - amount)
-  }
-  for (const e of liveEvents(events)) {
+  for (const e of live) {
     switch (e.type) {
       case 'week.closed':
-        if (e.kidId === kidId) closedTotal += e.balance
+        if (e.kidId === kidId) closes.set(e.weekStart, e.balance)
         break
       case 'jar.allocated':
         if (e.kidId === kidId) {
@@ -27,22 +28,28 @@ export function jars(kidId: string, events: QBEvent[]): Jars {
           j[e.jar] += e.amount
         }
         break
-      // The action layer must reject a gift larger than the giver's give jar.
       case 'jar.gifted':
-        if (e.fromKidId === kidId) take('give', e.amount)
+        if (e.fromKidId === kidId) j.give -= e.amount
         if (e.toKidId === kidId) j.save += e.amount
         break
       case 'jar.paidOut':
-        if (e.kidId === kidId) take(e.jar, e.amount)
+        if (e.kidId === kidId) j[e.jar] -= e.amount
         break
       case 'jar.donated':
-        if (e.kidId === kidId) take('give', e.amount)
+        if (e.kidId === kidId) j.give -= e.amount
         break
       default:
         break
     }
   }
-  return { ...j, unsplit: Math.max(0, closedTotal - allocatedTotal) }
+  let closedTotal = 0
+  for (const v of closes.values()) closedTotal += v
+  return { ...j, unsplit: closedTotal - allocatedTotal }
+}
+
+/** Derives a kid's jars from the ledger. Closed balances are read as recorded, never recomputed. */
+export function jars(kidId: string, events: QBEvent[], prep?: Prepared): Jars {
+  return jarsFromLive(kidId, (prep ?? prepare(events)).live)
 }
 
 /** 25 cents while the unsplit amount has a sub-dollar part, otherwise a dollar. */

@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { applyFamilyAction, newFamily, LimitError } from '../../src/engine/reducer'
 import { kidLimit, choreLimit, ownsTheme, hasPro } from '../../src/engine/entitlements'
 import { jars } from '../../src/engine/jars'
-import { ev, makeFamily, makenna, nolan } from '../fixtures'
+import { ev, makeFamily, makenna, nolan, TRASH } from '../fixtures'
+import { weekState } from '../../src/engine/week'
 import type { Chore, Family } from '../../src/engine/types'
 
 const newKid = (name: string, theme: 'truck' | 'dino' = 'dino') => ({
@@ -104,9 +105,26 @@ describe('chores', () => {
     expect(choreLimit(h, nolan)).toBe(Infinity)
   })
 
-  it('remove deletes the chore', () => {
+  it('remove soft-deletes the chore (Ruling 27): hidden and inactive, still on the kid', () => {
     const f = applyFamilyAction(makeFamily(), { type: 'chore.remove', kidId: nolan, id: 'chore-bed' })
-    expect(f.kids[0].chores.some((c) => c.id === 'chore-bed')).toBe(false)
+    expect(f.kids[0].chores.find((c) => c.id === 'chore-bed')).toMatchObject({ removed: true, active: false })
+    const g = applyFamilyAction(f, { type: 'chore.update', kidId: nolan, id: 'chore-bed', patch: { active: true } })
+    expect(g.kids[0].chores.find((c) => c.id === 'chore-bed')?.active).toBe(false)
+  })
+
+  it('I3: removing a verified paid chore leaves the week pay unchanged', () => {
+    const f = makeFamily()
+    const events = [
+      ev({ type: 'chore.checked', kidId: nolan, choreId: TRASH, date: '2026-11-03' }, '2026-11-03T09:00:00'),
+      ev({ type: 'chore.verified', kidId: nolan, choreId: TRASH, date: '2026-11-03' }, '2026-11-03T10:00:00'),
+    ]
+    const now = new Date(2026, 10, 4, 12)
+    const before = weekState(f, f.kids[0], events, '2026-11-01', now)
+    const g = applyFamilyAction(f, { type: 'chore.remove', kidId: nolan, id: TRASH })
+    const after = weekState(g, g.kids[0], events, '2026-11-01', now)
+    expect(before.pay).toBe(100)
+    expect(after.pay).toBe(100)
+    expect(after.balance).toBe(before.balance)
   })
 })
 

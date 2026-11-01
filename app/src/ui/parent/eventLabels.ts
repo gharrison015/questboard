@@ -1,19 +1,15 @@
-import { currentWeekStart } from '../../engine/closeWeeks'
-import { dateKey, dayLabel, weekDays } from '../../engine/dates'
+import { dateKey, dayLabel } from '../../engine/dates'
 import { formatCents } from '../../engine/money'
-import { liveEvents, undoneIds } from '../../engine/week'
+import type { Prepared } from '../../engine/ledger'
+import { ruleRows } from '../../engine/undoRules'
 import type { Family, Kid, QBEvent } from '../../engine/types'
+
+export { redoTargets, undoTargets } from '../../engine/undoRules'
 
 const VIA: Record<string, string> = { paypal: 'PayPal', cashapp: 'Cash App', venmo: 'Venmo' }
 const JAR: Record<string, string> = { save: 'Save', spend: 'Spend', give: 'Give' }
 
 const cap = (s: string): string => (s ? s[0].toUpperCase() + s.slice(1) : s)
-
-/** The kid an event is about, as seen from `kidId`. Gifts show for both kids. */
-function involves(e: QBEvent, kidId: string): boolean {
-  if (e.type === 'jar.gifted') return e.fromKidId === kidId || e.toKidId === kidId
-  return 'kidId' in e && e.kidId === kidId
-}
 
 /** Plain-language label for one event, from the point of view of `kid`. Undo events have none. */
 export function eventLabel(e: QBEvent, family: Family, kid: Kid, today: string): string | null {
@@ -64,82 +60,30 @@ export interface ActivityRow {
   /** Every non-undo event the row stands for: the whole group when events share a groupId. */
   ids: string[]
   undone: boolean
-  /** False for events outside the current open week (frozen) and for a close with money moved after it. */
+  /** Undo may be shown (live row, current week, nothing drew on it since, no jar would go negative). */
   undoable: boolean
+  /** Redo may be shown (undone row whose return would leave every jar whole). */
+  redoable: boolean
   /** A week close shown as "Closed" instead of an Undo button. */
   closedNote: boolean
   /** Undoing this row reopens the week, so the parent confirms first. */
   reopen: boolean
 }
 
-const MONEY_AFTER = new Set(['jar.allocated', 'jar.gifted', 'jar.paidOut', 'jar.donated'])
-
 /**
  * The kid's events for the current week, newest first, with grouped events merged into one row.
- * Undone rows stay in the list so they can be redone.
+ * The allow-rules live in engine/undoRules so tests use the same ones.
  */
-export function activityRows(family: Family, kid: Kid, events: QBEvent[], now: Date): ActivityRow[] {
+export function activityRows(family: Family, kid: Kid, events: QBEvent[], now: Date, prep?: Prepared): ActivityRow[] {
   const today = dateKey(now)
-  const start = currentWeekStart(family, now)
-  const days = new Set(weekDays(start))
-  const undone = undoneIds(events)
-  const dayOf = (e: QBEvent): string => ('date' in e ? e.date : dateKey(new Date(e.at)))
-
-  const byGroup = new Map<string, QBEvent[]>()
-  for (const e of events) if (e.groupId) byGroup.set(e.groupId, [...(byGroup.get(e.groupId) ?? []), e])
-
-  const ordered = events
-    .map((e, i) => ({ e, i }))
-    .sort((a, b) => Date.parse(b.e.at) - Date.parse(a.e.at) || b.i - a.i)
-    .map((x) => x.e)
-
-  // Chronological position, so "later" means later in the ledger order that liveEvents uses.
-  const pos = new Map<string, number>()
-  events
-    .map((e, i) => ({ e, i }))
-    .sort((a, b) => Date.parse(a.e.at) - Date.parse(b.e.at) || a.i - b.i)
-    .forEach((x, n) => pos.set(x.e.id, n))
-  const moneyMovedAfter = (closeId: string): boolean =>
-    events.some((m) => MONEY_AFTER.has(m.type) && !undone.has(m.id) && involves(m, kid.id) && (pos.get(m.id) ?? 0) > (pos.get(closeId) ?? 0))
-
-  const rows: ActivityRow[] = []
-  const seenGroups = new Set<string>()
-  for (const e of ordered) {
-    if (e.type === 'undo' || !involves(e, kid.id) || !days.has(dayOf(e))) continue
-    if (e.type === 'week.closed' && e.inactive) continue
-    if (e.groupId) {
-      if (seenGroups.has(e.groupId)) continue
-      seenGroups.add(e.groupId)
-    }
-    const members = (e.groupId ? byGroup.get(e.groupId) : undefined) ?? [e]
-    // The gift event names the row ("Gave $2 to Makenna"); otherwise the newest member does.
-    const lead = members.find((m) => m.type === 'jar.gifted' && involves(m, kid.id)) ?? e
-    const label = eventLabel(lead, family, kid, today)
+  const out: ActivityRow[] = []
+  for (const r of ruleRows(family, kid, events, now, prep)) {
+    const label = eventLabel(r.lead, family, kid, today)
     if (!label) continue
-    const close = members.find((m) => m.type === 'week.closed')
-    const frozen = !!close && (close.type === 'week.closed' && close.weekStart !== start || moneyMovedAfter(close.id))
-    rows.push({
-      key: lead.id,
-      label,
-      ids: members.map((m) => m.id),
-      undone: members.every((m) => undone.has(m.id)),
-      undoable: !frozen,
-      closedNote: frozen,
-      reopen: !!close && !frozen,
+    out.push({
+      key: r.lead.id, label, ids: r.ids, undone: r.undone,
+      undoable: r.undoable, redoable: r.redoable, closedNote: r.closedNote, reopen: r.reopen,
     })
   }
-  return rows
-}
-
-/** The undo events that append to undo a row: one per live member. */
-export function undoTargets(events: QBEvent[], ids: string[]): string[] {
-  const live = new Set(liveEvents(events).map((e) => e.id))
-  return ids.filter((id) => live.has(id))
-}
-
-/** The effective undo events that currently hide a row's members, so a Redo can undo them. */
-export function redoTargets(events: QBEvent[], ids: string[]): string[] {
-  const undone = undoneIds(events)
-  const set = new Set(ids)
-  return events.filter((e) => e.type === 'undo' && set.has(e.targetEventId) && !undone.has(e.id)).map((e) => e.id)
+  return out
 }

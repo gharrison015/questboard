@@ -28,7 +28,7 @@ describe('jars', () => {
     expect(jars(makenna, events).save).toBe(300)
   })
 
-  it('payouts and donations reduce jars, clamped at zero', () => {
+  it('payouts and donations reduce jars; an over-draw shows as a negative (no clamp, Ruling 23d)', () => {
     const events = [
       closed(nolan, 1000),
       ev({ type: 'jar.allocated', kidId: nolan, jar: 'save', amount: 500 }, '2026-10-11T09:00:00.000Z'),
@@ -38,7 +38,16 @@ describe('jars', () => {
     ]
     const j = jars(nolan, events)
     expect(j.save).toBe(300)
-    expect(j.give).toBe(0)
+    expect(j.give).toBe(-300)
+  })
+
+  it('Ruling 23a: close, undo, close again, redo the first close counts the week once', () => {
+    const c1 = closed(nolan, 1000, '2026-11-01')
+    const u1 = ev({ type: 'undo', targetEventId: c1.id }, '2026-11-03T09:01:00.000Z')
+    const c2 = ev({ type: 'week.closed', kidId: nolan, weekStart: '2026-11-01', balance: 1000 }, '2026-11-03T09:02:00.000Z')
+    const redo = ev({ type: 'undo', targetEventId: u1.id }, '2026-11-03T09:03:00.000Z')
+    expect(jars(nolan, [c1, u1, c2]).unsplit).toBe(1000)
+    expect(jars(nolan, [c1, u1, c2, redo]).unsplit).toBe(1000)
   })
 
   it('respects undo and undo of undo', () => {

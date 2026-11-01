@@ -1,6 +1,9 @@
 import type { Cents, Chore, DateKey, Family, Kid, QBEvent } from './types'
-import { isPastMidnightOf, weekDays } from './dates'
+import { addDays, isPastMidnightOf, weekDays } from './dates'
 import { anyCents, effectiveMoney } from './money'
+import { closeEnd, coveredThrough, dayEvents, prepare, type Prepared, type WeekClose } from './ledger'
+
+export { liveEvents, undoneIds } from './ledger'
 
 export interface ChoreDayState {
   checked: boolean
@@ -31,35 +34,18 @@ export interface WeekState {
   useCents: boolean
   closed: boolean
   closedBalance?: Cents
+  /** The close event's time and inactive flag, when closed. */
+  closedAt?: string
+  closedInactive?: boolean
 }
 
 const ts = (e: QBEvent): number => Date.parse(e.at)
 
-function byTime(events: QBEvent[]): QBEvent[] {
-  return events
-    .map((e, i) => ({ e, i }))
-    .sort((a, b) => ts(a.e) - ts(b.e) || a.i - b.i)
-    .map((x) => x.e)
-}
-
-/** Ids that an effective undo points at. An undo that was itself undone does not count. */
-export function undoneIds(events: QBEvent[]): Set<string> {
-  const sorted = byTime(events)
-  const undone = new Set<string>()
-  for (let i = sorted.length - 1; i >= 0; i--) {
-    const e = sorted[i]
-    if (e.type === 'undo' && !undone.has(e.id)) undone.add(e.targetEventId)
-  }
-  return undone
-}
-
-/** Drops every event that is the target of an undo which is itself not undone. */
-export function liveEvents(events: QBEvent[]): QBEvent[] {
-  const undone = undoneIds(events)
-  return byTime(events).filter((e) => e.type !== 'undo' && !undone.has(e.id))
-}
-
-/** Same as choreDayState but trusts that `live` is already filtered and sorted by liveEvents. */
+/**
+ * Chore state for one day from live events (any superset of that kid's live events for the day,
+ * in ledger order). The latest verify or reject for the chore and date decides, whatever the kid
+ * did after it (Ruling 24); with neither, the verification mode decides.
+ */
 export function choreDayStateLive(
   family: Family,
   kid: Kid,
@@ -68,25 +54,17 @@ export function choreDayStateLive(
   live: QBEvent[],
   now: Date,
 ): ChoreDayState {
-  let lastIdx = -1
-  for (let i = 0; i < live.length; i++) {
-    const e = live[i]
-    if (
-      (e.type === 'chore.checked' || e.type === 'chore.unchecked') &&
-      e.kidId === kid.id && e.choreId === chore.id && e.date === date
-    ) lastIdx = i
+  let checked = false
+  let decision: 'verified' | 'rejected' | undefined
+  for (const e of live) {
+    if (!('choreId' in e) || e.kidId !== kid.id || e.choreId !== chore.id || e.date !== date) continue
+    if (e.type === 'chore.checked') checked = true
+    else if (e.type === 'chore.unchecked') checked = false
+    else if (e.type === 'chore.verified') decision = 'verified'
+    else if (e.type === 'chore.rejected') decision = 'rejected'
   }
   const none: ChoreDayState = { checked: false, verified: false, rejected: false, pending: false, pays: false, pay: 0 }
-  if (lastIdx < 0 || live[lastIdx].type !== 'chore.checked') return none
-
-  // The latest verify or reject after the last check decides; sort position breaks timestamp ties.
-  let decision: 'verified' | 'rejected' | undefined
-  for (let i = lastIdx + 1; i < live.length; i++) {
-    const e = live[i]
-    if (e.type !== 'chore.verified' && e.type !== 'chore.rejected') continue
-    if (e.kidId !== kid.id || e.choreId !== chore.id || e.date !== date) continue
-    decision = e.type === 'chore.verified' ? 'verified' : 'rejected'
-  }
+  if (!checked) return none
   const verified = decision === 'verified'
   const rejected = decision === 'rejected'
 
@@ -107,61 +85,70 @@ export function choreDayState(
   date: DateKey,
   events: QBEvent[],
   now: Date,
+  prep?: Prepared,
 ): ChoreDayState {
-  return choreDayStateLive(family, kid, chore, date, liveEvents(events), now)
+  return choreDayStateLive(family, kid, chore, date, dayEvents(prep ?? prepare(events), kid.id, date), now)
 }
 
-export function weekState(family: Family, kid: Kid, events: QBEvent[], weekStart: DateKey, now: Date): WeekState {
-  const all = liveEvents(events)
-  let closeEvent: Extract<QBEvent, { type: 'week.closed' }> | undefined
-  for (const e of all) {
-    if (e.type === 'week.closed' && e.kidId === kid.id && e.weekStart === weekStart) closeEvent = e
-  }
-  // A closed week is frozen: nothing recorded after the close changes the live fields.
-  const live = closeEvent ? all.filter((e) => ts(e) <= ts(closeEvent)) : all
-  const days = weekDays(weekStart)
-  const inWeek = new Set(days)
-  const start = effectiveMoney(family, kid).startAmount
+/** Start money for a span of `n` counted days: the full amount for a whole week, a share for a partial one. */
+function startFor(family: Family, kid: Kid, n: number): Cents {
+  const full = effectiveMoney(family, kid).startAmount
+  return n >= 7 ? full : Math.round((full * n) / 7)
+}
+
+/**
+ * Sums a span. `counted` are the days that belong to it, `shown` the days the board draws.
+ * A closed span reads only events recorded up to the close, judged at the close time.
+ */
+function evaluate(
+  family: Family,
+  kid: Kid,
+  prep: Prepared,
+  weekStart: DateKey,
+  shown: DateKey[],
+  counted: DateKey[],
+  close: WeekClose | undefined,
+  now: Date,
+): WeekState {
+  const cutoff = close ? ts(close) : Infinity
+  const at = close && cutoff < now.getTime() ? new Date(cutoff) : now
+  const start = startFor(family, kid, counted.length)
 
   const payByDay: Record<DateKey, Cents> = {}
-  let pay = 0
-  for (const date of days) {
-    let dayPay = 0
-    for (const chore of kid.chores) {
-      dayPay += choreDayStateLive(family, kid, chore, date, live, now).pay
-    }
-    if (dayPay !== 0) payByDay[date] = dayPay
-    pay += dayPay
-  }
-
   const lostByDay: WeekState['lostByDay'] = {}
+  let pay = 0
   let deductions = 0
   let earnRaw = 0
-  const amounts: Cents[] = [start, ...Object.values(payByDay)]
-  for (const e of live) {
-    if (e.type === 'deduction.logged' && e.kidId === kid.id && inWeek.has(e.date)) {
-      const label = family.reasons.find((r) => r.id === e.reasonId)?.label ?? 'Deduction'
-      const day = lostByDay[e.date] ?? { amount: 0, items: [] }
-      day.amount += e.amount
-      day.items.push({ reasonId: e.reasonId, label, amount: e.amount, eventId: e.id })
-      lostByDay[e.date] = day
-      deductions += e.amount
-      amounts.push(e.amount)
-    } else if (e.type === 'earnback.earned' && e.kidId === kid.id && inWeek.has(e.date)) {
-      earnRaw += e.amount
+  const amounts: Cents[] = [start]
+  for (const date of counted) {
+    const all = dayEvents(prep, kid.id, date)
+    const day = close ? all.filter((e) => ts(e) <= cutoff) : all
+    if (day.length === 0) continue
+    let dayPay = 0
+    for (const chore of kid.chores) dayPay += choreDayStateLive(family, kid, chore, date, day, at).pay
+    if (dayPay !== 0) { payByDay[date] = dayPay; amounts.push(dayPay) }
+    pay += dayPay
+    for (const e of day) {
+      if (e.type === 'deduction.logged') {
+        const label = family.reasons.find((r) => r.id === e.reasonId)?.label ?? 'Deduction'
+        const lost = lostByDay[date] ?? { amount: 0, items: [] }
+        lost.amount += e.amount
+        lost.items.push({ reasonId: e.reasonId, label, amount: e.amount, eventId: e.id })
+        lostByDay[date] = lost
+        deductions += e.amount
+        amounts.push(e.amount)
+      } else if (e.type === 'earnback.earned') {
+        earnRaw += e.amount
+      }
     }
   }
   const earnback = Math.min(earnRaw, Math.max(0, deductions))
   amounts.push(earnback)
   const balance = Math.max(0, start + pay + earnback - deductions)
 
-  const closedBalance = closeEvent?.balance
-
-  const useCents = anyCents(amounts)
-
   return {
     weekStart,
-    days,
+    days: shown,
     start,
     pay,
     earnback,
@@ -169,10 +156,81 @@ export function weekState(family: Family, kid: Kid, events: QBEvent[], weekStart
     balance,
     lostByDay,
     payByDay,
-    useCents,
-    closed: closedBalance !== undefined,
-    ...(closedBalance !== undefined ? { closedBalance } : {}),
+    useCents: anyCents(amounts),
+    closed: close !== undefined,
+    ...(close ? { closedBalance: close.balance, closedAt: close.at, ...(close.inactive ? { closedInactive: true } : {}) } : {}),
   }
+}
+
+/** Days from `from` through `to`, inclusive. */
+export function spanDays(from: DateKey, to: DateKey): DateKey[] {
+  const out: DateKey[] = []
+  for (let d = from; d <= to; d = addDays(d, 1)) out.push(d)
+  return out
+}
+
+/** Closed weeks never change, so their state is cached per family, kid, close and undo count. */
+const closedCache = new WeakMap<Family, WeakMap<Kid, Map<string, WeekState>>>()
+
+/** The state of a closed span, cached by close id. `shown` defaults to the span's own days. */
+export function closedState(
+  family: Family,
+  kid: Kid,
+  prep: Prepared,
+  close: WeekClose,
+  weekStart: DateKey = close.weekStart,
+  shown?: DateKey[],
+): WeekState {
+  const counted = spanDays(close.weekStart, closeEnd(close))
+  const key = `${close.id}:${prep.undoCount}:${weekStart}:${shown ? shown.length : 0}`
+  let perFamily = closedCache.get(family)
+  if (!perFamily) { perFamily = new WeakMap(); closedCache.set(family, perFamily) }
+  let perKid = perFamily.get(kid)
+  if (!perKid) { perKid = new Map(); perFamily.set(kid, perKid) }
+  const hit = perKid.get(key)
+  if (hit) return hit
+  // The judging time is the close itself, so `now` does not matter for a closed span.
+  const state = evaluate(family, kid, prep, weekStart, shown ?? counted, counted, close, new Date(ts(close)))
+  perKid.set(key, state)
+  return state
+}
+
+/** The live close that ends the week starting `weekStart` (a full week, or the uncovered rest of it). */
+export function closeForWeek(prep: Prepared, kidId: string, weekStart: DateKey): WeekClose | undefined {
+  const days = weekDays(weekStart)
+  const end = days[6]
+  let found: WeekClose | undefined
+  for (const c of prep.closes.get(kidId) ?? []) {
+    if (c.weekStart >= weekStart && c.weekStart <= end && closeEnd(c) === end) {
+      if (!found || ts(c) >= ts(found)) found = c
+    }
+  }
+  return found
+}
+
+/** The state of an unclosed span from `from` through `to`, as dueWeekCloses would close it. */
+export function openSpanState(family: Family, kid: Kid, prep: Prepared, from: DateKey, to: DateKey, now: Date): WeekState {
+  const counted = spanDays(from, to)
+  return evaluate(family, kid, prep, from, counted, counted, undefined, now)
+}
+
+/**
+ * The week that starts on `weekStart`. Closed: frozen at the close. Open: days already covered
+ * by a closed span (after a week start change) are left out, and the start money shrinks to match.
+ */
+export function weekState(family: Family, kid: Kid, events: QBEvent[], weekStart: DateKey, now: Date, prep?: Prepared): WeekState {
+  const p = prep ?? prepare(events)
+  const days = weekDays(weekStart)
+  const close = closeForWeek(p, kid.id, weekStart)
+  if (close) return closedState(family, kid, p, close, weekStart, days)
+  const covered = coveredThrough(kid.id, p)
+  const counted = covered === null ? days : days.filter((d) => d > covered)
+  return evaluate(family, kid, p, weekStart, days, counted, undefined, now)
+}
+
+/** What the board shows: the recorded payday amount once the week is closed, else the live balance. */
+export function displayBalance(ws: WeekState): Cents {
+  return ws.closed && ws.closedBalance !== undefined ? ws.closedBalance : ws.balance
 }
 
 export function mathTerms(ws: WeekState): { start: Cents; plus: Cents; minus: Cents; result: Cents } {
