@@ -49,6 +49,32 @@ function contract(name: string, make: () => StorageAdapter) {
       expect(w.events).toEqual([])
       expect(w.lockout).toEqual(EMPTY_LOCKOUT)
     })
+
+    it('replaceAll swaps family, events and meta in one step', async () => {
+      await a.saveFamily(makeFamily())
+      await a.appendEvents(events())
+      const next = makeFamily({ id: 'fam-2', name: 'New crew' })
+      const one = [ev({ type: 'deduction.logged', kidId: nolan, reasonId: 'r-yelling', amount: 25, date: '2026-10-09' }, '2026-10-09T10:00:00.000Z')]
+      await a.replaceAll(next, one, { lockout: { failures: 1, lockedUntil: null }, device: { modeOverride: 'phone', appearanceOverride: null } })
+      const r = await a.load()
+      expect(r.family?.name).toBe('New crew')
+      expect(r.events.map((e) => e.id)).toEqual([one[0].id])
+      expect(r.lockout.failures).toBe(1)
+      expect(r.device.modeOverride).toBe('phone')
+    })
+
+    it('I2: a replaceAll that fails part way leaves the old data intact', async () => {
+      const fam = makeFamily()
+      const evs = events()
+      await a.saveFamily(fam)
+      await a.appendEvents(evs)
+      // An event that cannot be stored (no id for the key path, and a function that cannot be cloned).
+      const broken = { at: '2026-10-09T10:00:00.000Z', type: 'deduction.logged', bad: () => 1 } as unknown as QBEvent
+      await expect(a.replaceAll(makeFamily({ name: 'Should not land' }), [evs[0], broken])).rejects.toBeTruthy()
+      const r = await a.load()
+      expect(r.family?.name).toBe(fam.name)
+      expect(r.events).toHaveLength(3)
+    })
   })
 }
 

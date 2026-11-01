@@ -141,7 +141,7 @@ export function ChallengeModal({ kid, subject, onClose, onHop }: ChallengeModalP
           {q.parentConfirm ? (
             <div className="kb-ch-read">
               <p className="kb-ch-note">A grown-up checks this one</p>
-              <Button onClick={() => { if (won === null) parent.require(() => award('read')) }} aria-disabled={won !== null}>
+              <Button onClick={() => { if (won === null) parent.confirm(() => award('read')) }} aria-disabled={won !== null}>
                 Grown-up: they read it
               </Button>
             </div>

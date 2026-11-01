@@ -6,6 +6,7 @@ import {
   sortEvents,
   type DeviceSettings,
   type LoadedState,
+  type ReplaceMeta,
   type StorageAdapter,
 } from './adapter'
 
@@ -22,6 +23,15 @@ export class InMemoryAdapter implements StorageAdapter {
       lockout: { ...this.lockout },
       device: { ...this.device },
     }
+  }
+  async replaceAll(f: Family, e: QBEvent[], meta?: ReplaceMeta): Promise<void> {
+    // Clone everything first, so a bad value throws before anything changes.
+    const family = structuredClone(f)
+    const events = new Map(e.map((x) => [x.id, structuredClone(x)] as const))
+    this.family = family
+    this.events = events
+    this.lockout = meta?.lockout ? { ...meta.lockout } : EMPTY_LOCKOUT
+    this.device = meta?.device ? { ...meta.device } : DEFAULT_DEVICE
   }
   async saveFamily(f: Family): Promise<void> {
     this.family = structuredClone(f)

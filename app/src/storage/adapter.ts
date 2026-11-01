@@ -13,8 +13,15 @@ export interface LoadedState {
   device: DeviceSettings
 }
 
+export interface ReplaceMeta {
+  lockout?: LockoutState
+  device?: DeviceSettings
+}
+
 export interface StorageAdapter {
   load(): Promise<LoadedState>
+  /** Replaces the family, every event and the meta records in one step: all of it lands, or none of it. */
+  replaceAll(family: Family, events: QBEvent[], meta?: ReplaceMeta): Promise<void>
   saveFamily(f: Family): Promise<void>
   appendEvents(e: QBEvent[]): Promise<void>
   saveLockout(s: LockoutState): Promise<void>

@@ -1,6 +1,7 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { StoreProvider, useKid } from '../../src/state/store'
+import { StoreProvider, useActions, useKid, useStore, type Actions } from '../../src/state/store'
+import { AppShell } from '../../src/ui/shell/AppShell'
 import { InMemoryAdapter } from '../../src/storage/memory'
 import { KidBoard } from '../../src/ui/kid/KidBoard'
 import { ParentProvider } from '../../src/ui/parent/useParent'
@@ -101,7 +102,7 @@ describe('Earn it back', () => {
     fireEvent.click(screen.getByRole('button', { name: /Reading/ }))
     expect(screen.getByText('A grown-up checks this one')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Grown-up: they read it' }))
-    expect(await screen.findByRole('dialog', { name: 'Parent PIN' })).toBeInTheDocument()
+    expect(await screen.findByRole('dialog', { name: 'Grown-up check' })).toBeInTheDocument()
     expect(await earned(adapter)).toHaveLength(0)
   })
 
@@ -146,14 +147,36 @@ describe('Earn it back', () => {
     const btn = screen.getByRole('button', { name: 'Grown-up: they read it' })
     fireEvent.click(btn)
     fireEvent.click(btn)
-    const gate = await screen.findByRole('dialog', { name: 'Parent PIN' })
+    const gate = await screen.findByRole('dialog', { name: 'Grown-up check' })
     for (const d of '1234') fireEvent.click(within(gate).getByRole('button', { name: d }))
     fireEvent.click(within(gate).getByRole('button', { name: 'Enter' }))
     await waitFor(async () => expect(await earned(adapter)).toHaveLength(1))
-    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Parent PIN' })).not.toBeInTheDocument())
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Grown-up check' })).not.toBeInTheDocument())
     fireEvent.click(screen.getByRole('button', { name: 'Grown-up: they read it' }))
-    expect(screen.queryByRole('dialog', { name: 'Parent PIN' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: 'Grown-up check' })).not.toBeInTheDocument()
     expect(await earned(adapter)).toHaveLength(1)
     expect((await earned(adapter))[0]).toMatchObject({ skill: 'Reading', amount: 100 })
+  })
+
+  it('Ruling 25: a Reading confirm never opens a parent session', async () => {
+    const adapter = new InMemoryAdapter()
+    await adapter.saveFamily(makeFamily({ createdAt: '2026-11-01T00:00:00.000Z', pinSalt: 'salt', pinHash: await hashPin('1234', 'salt') }))
+    await adapter.appendEvents([
+      ev({ type: 'deduction.logged', kidId: nolan, reasonId: 'r-yelling', amount: 300, date: '2026-11-04' }, '2026-11-04T09:00:00'),
+    ])
+    let actions!: Actions
+    let view = ''
+    function Probe() { actions = useActions(); view = useStore().view; return null }
+    render(<StoreProvider adapter={adapter}><Probe /><AppShell /></StoreProvider>)
+    await screen.findByRole('banner')
+    fireEvent.click(screen.getByRole('button', { name: /Reading/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Grown-up: they read it' }))
+    const gate = await screen.findByRole('dialog', { name: 'Grown-up check' })
+    for (const d of '1234') fireEvent.click(within(gate).getByRole('button', { name: d }))
+    fireEvent.click(within(gate).getByRole('button', { name: 'Enter' }))
+    await waitFor(async () => expect(await earned(adapter)).toHaveLength(1))
+    act(() => actions.enterParent())
+    expect(view).toBe('kid')
+    expect(screen.queryByRole('region', { name: 'Log a deduction' })).toBeNull()
   })
 })

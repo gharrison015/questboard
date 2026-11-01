@@ -4,20 +4,31 @@ import { isLocked } from '../../security/session'
 import { Button } from '../primitives/Button'
 import { Keypad } from '../primitives/Keypad'
 import { Modal } from '../primitives/Modal'
+import { useToast } from '../primitives/Toaster'
+import { RecoveryForm } from './RecoveryForm'
 
 const MAX_DIGITS = 6
 const MIN_DIGITS = 4
 
+export type GateMode = 'session' | 'confirm'
+
 interface ParentGateProps {
   open: boolean
+  /** 'session' starts the 5-minute parent session; 'confirm' only checks the PIN (Ruling 25). */
+  mode?: GateMode
   onClose(): void
   onSuccess(): void
 }
 
-/** PIN entry. Shows 4 to 6 dots, shakes on a wrong PIN, and counts down a lockout. */
-export function ParentGate({ open, onClose, onSuccess }: ParentGateProps) {
+type Pane = 'pin' | 'recover' | 'erase'
+
+/** PIN entry. Shows 4 to 6 dots, shakes on a wrong PIN, and counts down a lockout. "Forgot PIN?" leads to recovery. */
+export function ParentGate({ open, mode = 'session', onClose, onSuccess }: ParentGateProps) {
   const { lockout } = useStore()
-  const { unlockParent } = useActions()
+  const { unlockParent, confirmPin, eraseAll } = useActions()
+  const toast = useToast()
+  const [pane, setPane] = useState<Pane>('pin')
+  const [typed, setTyped] = useState('')
   const [pin, setPin] = useState('')
   const [shake, setShake] = useState(false)
   const [wrong, setWrong] = useState(false)
@@ -26,7 +37,7 @@ export function ParentGate({ open, onClose, onSuccess }: ParentGateProps) {
   const [clock, setClock] = useState(() => Date.now())
 
   useEffect(() => {
-    if (open) { setPin(''); setShake(false); setWrong(false) }
+    if (open) { setPin(''); setShake(false); setWrong(false); setPane('pin'); setTyped('') }
   }, [open])
 
   useEffect(() => {
@@ -49,7 +60,7 @@ export function ParentGate({ open, onClose, onSuccess }: ParentGateProps) {
   const submit = async (): Promise<void> => {
     if (pin.length < MIN_DIGITS || busy || locked) return
     setBusy(true)
-    const result = await unlockParent(pin)
+    const result = await (mode === 'confirm' ? confirmPin(pin) : unlockParent(pin))
     setBusy(false)
     setPin('')
     if (result === 'ok') { onSuccess(); return }
@@ -66,11 +77,48 @@ export function ParentGate({ open, onClose, onSuccess }: ParentGateProps) {
     else if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'BUTTON') void submit()
   }
 
+  const erase = (): void => {
+    if (typed !== 'ERASE') return
+    eraseAll()
+      .then(() => { onClose(); toast.show('Everything was erased') })
+      .catch(() => toast.show('Could not erase. Try again.'))
+  }
+
+  const title = mode === 'confirm' ? 'Grown-up check' : 'Parent PIN'
   const dots = Math.max(MIN_DIGITS, pin.length)
+  if (pane === 'recover') {
+    return (
+      <Modal open={open} title="Forgot PIN" onClose={onClose} className="qb-gate">
+        <div className="qb-gate-recover">
+          <h2 className="qb-gate-title">Forgot PIN</h2>
+          <RecoveryForm codeDisplay="inline" onDone={() => setPane('pin')} />
+          <button type="button" className="qb-gate-link" onClick={() => { setTyped(''); setPane('erase') }}>Lost the recovery code too? Erase and start over</button>
+          <div className="qb-gate-actions">
+            <Button variant="quiet" onClick={() => setPane('pin')}>Back to PIN</Button>
+          </div>
+        </div>
+      </Modal>
+    )
+  }
+  if (pane === 'erase') {
+    return (
+      <Modal open={open} title="Erase and start over" onClose={onClose} className="qb-gate">
+        <div className="qb-gate-recover">
+          <h2 className="qb-gate-title">Erase and start over</h2>
+          <p className="st-hint">This removes the family, history and settings from this device and returns to setup. It cannot be undone. Type ERASE to confirm.</p>
+          <input className="st-input" aria-label="Type ERASE" value={typed} autoComplete="off" onChange={(e) => setTyped(e.target.value)} />
+          <div className="qb-gate-actions">
+            <Button variant="quiet" onClick={() => setPane('recover')}>Back</Button>
+            <Button variant="danger" disabled={typed !== 'ERASE'} onClick={erase}>Erase everything</Button>
+          </div>
+        </div>
+      </Modal>
+    )
+  }
   return (
-    <Modal open={open} title="Parent PIN" onClose={onClose} className={shake ? 'qb-gate shake' : 'qb-gate'}>
+    <Modal open={open} title={title} onClose={onClose} className={shake ? 'qb-gate shake' : 'qb-gate'}>
       <div ref={wrap} onKeyDown={onKeyDown}>
-        <h2 className="qb-gate-title">Parent PIN</h2>
+        <h2 className="qb-gate-title">{title}</h2>
         <div className="qb-dots" role="img" aria-label={`${pin.length} digits entered`}>
           {Array.from({ length: dots }, (_, i) => (
             <span key={i} className={i < pin.length ? 'qb-dot on' : 'qb-dot'} />
@@ -84,6 +132,7 @@ export function ParentGate({ open, onClose, onSuccess }: ParentGateProps) {
           <Button variant="quiet" onClick={onClose}>Cancel</Button>
           <Button aria-disabled={pin.length < MIN_DIGITS || busy || locked} onClick={() => void submit()}>Enter</Button>
         </div>
+        <button type="button" className="qb-gate-link" onClick={() => setPane('recover')}>Forgot PIN?</button>
       </div>
     </Modal>
   )
