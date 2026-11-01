@@ -238,7 +238,7 @@ describe('settings', () => {
     fireEvent.change(within(dlg).getByLabelText('Type ERASE'), { target: { value: 'ERASE' } })
     expect(go).toBeEnabled()
     fireEvent.click(go)
-    expect(await screen.findByText('Setup coming in Task 16')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Welcome to QuestBoard' })).toBeInTheDocument()
     expect((await adapter.load()).family).toBeNull()
   })
 

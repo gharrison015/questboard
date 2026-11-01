@@ -39,6 +39,8 @@ export interface Actions {
   /** Counts one PIN-style attempt against the shared lockout. Five misses lock for 60 seconds. Does not open the parent session. */
   tryPin(check: () => Promise<boolean>): Promise<'ok' | 'bad' | 'locked'>
   replaceAll(family: Family, events: QBEvent[]): Promise<void>
+  /** First-run setup: saves a finished family in one call and shows it. */
+  createFamily(family: Family): Promise<void>
   /** Wipes storage and returns to the empty install, which shows the setup wizard. */
   eraseAll(): Promise<void>
 }
@@ -152,6 +154,10 @@ export function StoreProvider({ adapter, children }: { adapter: StorageAdapter; 
         await adapter.saveDevice(device)
         await adapter.saveLockout(lockout)
         commit({ family, events: all, currentKidId: null, view: 'kid' })
+      }),
+      createFamily: (family) => enqueue(async () => {
+        await adapter.saveFamily(family)
+        commit({ family, currentKidId: null, view: 'kid' })
       }),
       eraseAll: () => enqueue(async () => {
         await adapter.wipe()

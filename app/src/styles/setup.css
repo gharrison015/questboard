@@ -1,0 +1,38 @@
+/* First-run setup. Tokens only. The card scrolls inside itself, never the page. */
+.su-page {
+  display: grid;
+  place-items: center;
+  height: 100dvh;
+  padding: 12px;
+  background: var(--bg);
+  overflow: hidden;
+}
+.su-card {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  width: 100%;
+  max-width: 560px;
+  max-height: 100%;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--card);
+  color: var(--ink);
+}
+.su-dots { display: flex; justify-content: center; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.su-dot { width: 10px; height: 10px; border-radius: 999px; border: 2px solid var(--line); }
+.su-dot[data-state="done"] { background: var(--ink-2); border-color: var(--ink-2); }
+.su-dot[data-state="now"] { background: var(--accent); border-color: var(--accent); }
+.su-body { display: grid; align-content: start; gap: 12px; min-height: 0; overflow-y: auto; padding: 2px; }
+.su-title { font-size: 1.5rem; }
+.su-lead { margin: 0; color: var(--ink-2); }
+.su-pin { letter-spacing: 0.3em; font-size: 1.25rem; }
+.su-code { overflow-wrap: anywhere; user-select: all; }
+.su-kid { gap: 12px; }
+.su-chore { gap: 12px; }
+.su-chore-text { display: grid; gap: 2px; min-width: 0; }
+.su-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.su-buddies { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; margin: 0; padding: 0; list-style: none; }
+.su-buddy { display: grid; justify-items: center; gap: 4px; font-weight: 800; }
+.su-buddy img { object-fit: contain; }
