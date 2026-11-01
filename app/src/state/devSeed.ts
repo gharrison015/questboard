@@ -66,5 +66,12 @@ export async function seedDemoFamily(now: Date = new Date()): Promise<{ family: 
     { id: newId(), at, type: 'deduction.logged', kidId: nKid.id, reasonId: reason('Not listening').id, amount: 100, date: before },
     { id: newId(), at, type: 'deduction.logged', kidId: nKid.id, reasonId: reason('Yelling').id, amount: 50, date: today },
   )
+  // A closed previous week so the Jars tab has coins to split: Nolan has 12 unsplit, Makenna has 5 saved.
+  const lastWeek = addDays(weekStart, -7)
+  events.push(
+    { id: newId(), at, type: 'week.closed', kidId: nKid.id, weekStart: lastWeek, balance: 1200 },
+    { id: newId(), at, type: 'week.closed', kidId: mKid.id, weekStart: lastWeek, balance: 500 },
+    { id: newId(), at, type: 'jar.allocated', kidId: mKid.id, jar: 'save', amount: 500 },
+  )
   return { family, events }
 }
