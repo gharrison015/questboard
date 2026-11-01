@@ -1,16 +1,16 @@
-/* One-time takeover from the old prototype service worker.
-   The prototype's cache-first worker served index.html from its own cache, and the
-   new app's worker waits for a prompt that the old page can never show. When the
-   prototype cache is present, take over at once, delete that cache and reload the
-   open windows so they load the real app. Normal updates keep the prompt flow. */
+/* Worker additions, loaded into the generated sw.js through workbox importScripts.
+
+   1. A new version takes over as soon as it is installed. Waiting for every tab to close
+      left phones on an old build for days (an in-app browser or a home screen app rarely
+      closes all the way). The app is one script file, so an open page keeps working on the
+      code it already loaded; main.tsx reloads it into the new version at an idle moment.
+
+   2. One-time takeover from the June prototype's cache-first worker: delete its cache and
+      reload the open windows, since the prototype page has no code to reload itself. */
 const isProtoCache = (k) => k.startsWith('questboard-proto')
 
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) => {
-      if (keys.some(isProtoCache)) return self.skipWaiting()
-    }),
-  )
+self.addEventListener('install', () => {
+  self.skipWaiting()
 })
 
 self.addEventListener('activate', (event) => {

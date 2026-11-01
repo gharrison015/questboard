@@ -12,7 +12,16 @@ body,
   height: 100%;
 }
 
+html {
+  overflow: hidden;
+}
+
+/* The page itself never scrolls; panels scroll inside. A fixed body stops iOS from
+   sliding the whole page (it ignores overflow: hidden on body for touch scrolling),
+   and makes 100% heights equal the visible screen. */
 body {
+  position: fixed;
+  inset: 0;
   overflow: hidden;
   background: linear-gradient(180deg, var(--bg-wash), var(--bg) 45%);
   background-attachment: fixed;
@@ -186,15 +195,19 @@ body {
   position: fixed;
   inset: 0;
   z-index: 50;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
     max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
   background: var(--scrim);
 }
 .qb-modal {
   width: min(100%, 380px);
-  max-height: calc(100dvh - 32px);
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: 100%;
   overflow-y: auto;
   padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
   border-radius: var(--r-lg);
@@ -346,7 +359,7 @@ body {
 
 /* Shell */
 .qb-shell {
-  height: 100dvh;
+  height: 100%;
   display: flex;
   flex-direction: column;
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)

@@ -4,8 +4,7 @@
 .tv-board {
   --tv-body: clamp(28px, 1.5vw, 44px);
   position: relative;
-  height: 100vh;
-  height: 100dvh;
+  height: 100%;
   overflow: hidden;
   display: grid;
   grid-template-rows: 1fr;

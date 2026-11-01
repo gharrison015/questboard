@@ -9,8 +9,17 @@ import { markUpdateReady } from './app/swUpdate.ts'
 import { StoreProvider } from './state/store.tsx'
 import { LocalAdapter } from './storage/local.ts'
 
-// A new version waits until the board is idle; see useApplyUpdateWhenIdle in the shell.
+// The worker activates a new version as soon as it installs (public/sw-migrate.js). The open
+// page keeps running the code it loaded and reloads into the new version at an idle moment:
+// the kid board with nothing open, or the first setup step before anything is typed.
 const updateSW = registerSW({ immediate: true, onNeedRefresh: () => markUpdateReady(updateSW) })
+if ('serviceWorker' in navigator) {
+  // No controller yet means a first install; that takeover needs no reload.
+  const hadController = navigator.serviceWorker.controller !== null
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (hadController) markUpdateReady(async () => window.location.reload())
+  })
+}
 
 keepPagePinned()
 

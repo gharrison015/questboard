@@ -1,4 +1,5 @@
 import { useLayoutEffect, useState } from 'react'
+import { useApplyUpdateWhenIdle } from '../../app/swUpdate'
 import { LimitError } from '../../engine/reducer'
 import { isValidPin, makeRecoveryCode } from '../../security/pin'
 import { useActions } from '../../state/store'
@@ -49,6 +50,9 @@ export function SetupWizard() {
   // Until a kid is chosen the buddy tint stays on the default; then it follows the first kid.
   const tint = s.kids[0]?.name.trim() ? s.kids[0].theme : 'truck'
   useLayoutEffect(() => { document.documentElement.dataset.buddy = tint }, [tint])
+
+  // A new version may reload the page only on the first step before anything is typed.
+  useApplyUpdateWhenIdle(i === 0 && s.familyName.trim() === '', `${i}:${s.familyName}`)
 
   const next = (): void => {
     if (screen === 'pin') setS((prev) => ({ ...prev, code: makeRecoveryCode(), wrote: false }))

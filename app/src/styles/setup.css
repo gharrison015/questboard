@@ -1,24 +1,28 @@
 /* First-run setup. Tokens only. The card scrolls inside itself, never the page. */
+/* Pinned to the visible screen. iOS can report a viewport height (dvh) taller than what
+   is visible, which pushed Back and Next off the bottom; a fixed box with inset 0 is
+   always exactly the visible area, and the card shrinks to fit inside it. */
 .su-page {
-  display: grid;
-  grid-template-rows: minmax(0, 1fr);
-  place-items: center;
-  height: 100vh;
-  height: 100dvh;
-  padding: 12px;
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
+    max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
   background: var(--bg);
   overflow: hidden;
 }
 .su-card {
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: 100%;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 12px;
   width: 100%;
   max-width: 560px;
-  /* Not max-height: 100%. Safari leaves a percentage unresolved here, so the card
-     grew past the screen and Back and Next fell off the bottom. Page padding is 12px a side. */
-  max-height: calc(100vh - 24px);
-  max-height: calc(100dvh - 24px);
   padding: 16px;
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
