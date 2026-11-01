@@ -1,25 +1,30 @@
-import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
-import { choreDayStateLive, liveEvents } from '../../engine/week'
+import { useCallback, useEffect, useRef, type ReactNode } from 'react'
+import { choreDayStateLive } from '../../engine/week'
+import { dayEvents } from '../../engine/ledger'
+import { useDerived } from '../../state/derived'
 import { parseKey } from '../../engine/dates'
 import { newId } from '../../engine/ids'
 import type { Chore, DateKey, Family, Kid, QBEvent, Routine } from '../../engine/types'
 import { useActions, useStore } from '../../state/store'
+import { formatCents } from '../../engine/money'
 import { Icon } from '../primitives/Icon'
 import { useToast } from '../primitives/Toaster'
 
-export type BoxState = 'empty' | 'pending' | 'done' | 'verified'
+export type BoxState = 'empty' | 'pending' | 'done' | 'verified' | 'rejected'
 
 export function Box({ state }: { state: BoxState }) {
   return (
     <span className="kb-box" data-state={state} aria-hidden="true">
       {state === 'done' || state === 'verified' ? <Icon name="check" size={20} /> : null}
       {state === 'pending' ? <Icon name="routine" size={16} /> : null}
+      {state === 'rejected' ? <Icon name="x" size={14} /> : null}
     </span>
   )
 }
 
 const BOX_TEXT: Record<BoxState, string> = {
   empty: 'not done', pending: 'done, waiting for a check', done: 'done', verified: 'done and approved',
+  rejected: 'A grown-up said not yet',
 }
 
 interface RowProps {
@@ -41,7 +46,7 @@ export function Row({ title, label, state, editable, height, lead, tail, onToggl
       title={title}
       data-h={height}
       data-state={state}
-      aria-pressed={state !== 'empty'}
+      aria-pressed={state !== 'empty' && state !== 'rejected'}
       aria-disabled={editable ? undefined : 'true'}
       onClick={editable ? onToggle : undefined}
     >
@@ -53,10 +58,18 @@ export function Row({ title, label, state, editable, height, lead, tail, onToggl
   )
 }
 
+/** The pay chip on a chore row: "+$1", or "closed" once the week has closed (I5). */
+export function PayChip({ pay, closed }: { pay: number; closed: boolean }) {
+  if (pay <= 0) return null
+  return closed
+    ? <span className="kb-pay kb-pay-closed">closed<span className="qb-sr">, this week is closed</span></span>
+    : <span className="kb-pay">+{formatCents(pay)}</span>
+}
+
 /** Active chores due on the weekday of `date`. */
 export function choresDue(kid: Kid, date: DateKey): Chore[] {
   const dow = parseKey(date).getDay()
-  return kid.chores.filter((c) => c.active && c.days.includes(dow))
+  return kid.chores.filter((c) => c.active && !c.removed && c.days.includes(dow))
 }
 
 /** Routines assigned to the kid that run on the weekday of `date`. */
@@ -67,7 +80,7 @@ export function routinesDue(family: Family, kid: Kid, date: DateKey): Routine[] 
     .filter((r): r is Routine => !!r && r.days.includes(dow))
 }
 
-/** Whether a routine step is checked on `date`, from events already filtered by liveEvents. */
+/** Whether a routine step is checked on `date`, from live events (all of them, or that day's bucket). */
 export function routineStepDone(live: QBEvent[], kidId: string, routineId: string, stepId: string, date: DateKey): boolean {
   let v = false
   for (const e of live) {
@@ -87,7 +100,7 @@ export function useDayToggles(kid: Kid, onChecked?: () => void) {
   const { family, events, now } = useStore()
   const { append } = useActions()
   const toast = useToast()
-  const live = useMemo(() => liveEvents(events), [events])
+  const prep = useDerived()
   const inflight = useRef(new Map<string, { want: boolean; eventId: string }>())
   useEffect(() => {
     const ids = new Set(events.map((e) => e.id))
@@ -96,19 +109,20 @@ export function useDayToggles(kid: Kid, onChecked?: () => void) {
 
   const stateOf = useCallback((c: Chore, date: DateKey): ChoreState => {
     if (!family) return { box: 'empty', verified: false, rejected: false }
-    const s = choreDayStateLive(family, kid, c, date, live, now)
-    const box: BoxState = !s.checked || s.rejected ? 'empty' : s.verified ? 'verified' : s.pending && c.pay > 0 ? 'pending' : 'done'
+    const s = choreDayStateLive(family, kid, c, date, dayEvents(prep, kid.id, date), now)
+    const box: BoxState = !s.checked ? 'empty' : s.rejected ? 'rejected' : s.verified ? 'verified' : s.pending && c.pay > 0 ? 'pending' : 'done'
     return { box, verified: s.verified, rejected: s.rejected }
-  }, [family, kid, live, now])
+  }, [family, kid, prep, now])
 
   const stepDone = useCallback(
-    (routineId: string, stepId: string, date: DateKey): boolean => routineStepDone(live, kid.id, routineId, stepId, date),
-    [live, kid.id],
+    (routineId: string, stepId: string, date: DateKey): boolean => routineStepDone(dayEvents(prep, kid.id, date), kid.id, routineId, stepId, date),
+    [prep, kid.id],
   )
 
   const toggleChore = (c: Chore, date: DateKey): void => {
     const s = stateOf(c, date)
-    if (s.verified) return
+    // Verified rows are final, and a rejected row waits for a grown-up (Ruling 24).
+    if (s.verified || s.rejected) return
     const key = `c:${c.id}:${date}`
     const pending = inflight.current.get(key)
     const checkedNow = pending ? pending.want : s.box !== 'empty'

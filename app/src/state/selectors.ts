@@ -7,67 +7,66 @@ import { weekState, type WeekState } from '../engine/week'
 import type { DateKey, Kid } from '../engine/types'
 import { badges, type BadgeDef } from '../content/badges'
 import { useStore } from './store'
+import { useDerived } from './derived'
 
 /**
- * Selectors recompute when the ledger changes (length or last id), the family changes,
- * the kid changes, or the minute tick moves `now`.
+ * Selectors read the prepared ledger from useDerived, so the ledger is filtered and bucketed
+ * once per version. They recompute when the ledger, the family, the kid or `now` changes.
  */
-function useLedgerKey(): string {
-  const { events } = useStore()
-  return `${events.length}:${events.length > 0 ? events[events.length - 1].id : ''}`
-}
 
 export function useWeek(kid: Kid): WeekState {
   const { family, events, now } = useStore()
-  const key = useLedgerKey()
+  const prep = useDerived()
   return useMemo(() => {
     if (!family) throw new Error('No family loaded')
-    return weekState(family, kid, events, currentWeekStart(family, now), now)
-  }, [family, kid, key, now])
+    return weekState(family, kid, events, currentWeekStart(family, now), now, prep)
+  }, [family, kid, prep, now])
 }
 
 export function useJars(kid: Kid): Jars {
   const { events } = useStore()
-  const key = useLedgerKey()
-  return useMemo(() => jars(kid.id, events), [kid.id, key])
+  const prep = useDerived()
+  return useMemo(() => jars(kid.id, events, prep), [kid.id, prep])
 }
 
+/** Badges change at most once a day from the clock, so they key on the date, not the minute. */
 export function useBadges(kid: Kid): { def: BadgeDef; earnedAt: string | null }[] {
   const { family, events, now } = useStore()
-  const key = useLedgerKey()
+  const prep = useDerived()
+  const day = dateKey(now)
   return useMemo(() => {
     if (!family) throw new Error('No family loaded')
     return badges({
-      family, kid, events, now,
-      jars: jars(kid.id, events),
-      weeks: weekStatesFor(family, kid, events, now),
+      family, kid, events, now, prep,
+      jars: jars(kid.id, events, prep),
+      weeks: weekStatesFor(family, kid, events, now, prep),
     })
-  }, [family, kid, key, now])
+  }, [family, kid, prep, day])
 }
 
 export function useUnverified(kid: Kid): { choreId: string; date: DateKey }[] {
   const { family, events, now } = useStore()
-  const key = useLedgerKey()
+  const prep = useDerived()
   return useMemo(() => {
     if (!family) throw new Error('No family loaded')
-    return unverified(family, kid, events, now)
-  }, [family, kid, key, now])
+    return unverified(family, kid, events, now, prep)
+  }, [family, kid, prep, now])
 }
 
 export function useStreak(kid: Kid): number {
   const { family, events, now } = useStore()
-  const key = useLedgerKey()
+  const prep = useDerived()
   return useMemo(() => {
     if (!family) throw new Error('No family loaded')
-    return streak(family, kid, events, dateKey(now), now)
-  }, [family, kid, key, now])
+    return streak(family, kid, events, dateKey(now), now, prep)
+  }, [family, kid, prep, now])
 }
 
 export function useKidUsesCents(kid: Kid): boolean {
   const { family, events, now } = useStore()
-  const key = useLedgerKey()
+  const prep = useDerived()
   return useMemo(() => {
     if (!family) throw new Error('No family loaded')
-    return kidUsesCents(family, kid, events, now)
-  }, [family, kid, key, now])
+    return kidUsesCents(family, kid, events, now, prep)
+  }, [family, kid, prep, now])
 }

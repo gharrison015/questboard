@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef } from 'react'
 import { THEMES } from '../../config/themes'
 import { dateKey } from '../../engine/dates'
 import { formatCents } from '../../engine/money'
-import { choreDayStateLive, liveEvents } from '../../engine/week'
+import { choreDayStateLive, displayBalance } from '../../engine/week'
+import { dayEvents } from '../../engine/ledger'
+import { useDerived } from '../../state/derived'
 import type { Grade, Kid, QBEvent } from '../../engine/types'
 import { useJars, useStreak, useWeek } from '../../state/selectors'
 import { useActions, useKid, useKids, useStore } from '../../state/store'
@@ -32,24 +34,26 @@ function givenTotal(kidId: string, live: QBEvent[]): number {
 }
 
 function KidPanel({ kid }: { kid: Kid }) {
-  const { family, events, now } = useStore()
+  const { family, now } = useStore()
   const ws = useWeek(kid)
   const jars = useJars(kid)
   const streak = useStreak(kid)
-  const live = useMemo(() => liveEvents(events), [events])
+  const prep = useDerived()
+  const live = prep.live
   const today = dateKey(now)
   const fmt = (c: number): string => formatCents(c, { cents: ws.useCents })
 
   const total = ws.start + ws.pay
-  const pct = total > 0 ? Math.min(100, Math.max(0, Math.round((ws.balance / total) * 100))) : 0
+  const shownBalance = displayBalance(ws)
+  const pct = total > 0 ? Math.min(100, Math.max(0, Math.round((shownBalance / total) * 100))) : 0
 
   const left = useMemo(() => {
     if (!family) return []
     return choresDue(kid, today).filter((c) => {
-      const s = choreDayStateLive(family, kid, c, today, live, now)
+      const s = choreDayStateLive(family, kid, c, today, dayEvents(prep, kid.id, today), now)
       return !s.checked || s.rejected
     })
-  }, [family, kid, today, live, now])
+  }, [family, kid, today, prep, now])
 
   const routines = useMemo(() => {
     if (!family) return []
@@ -58,10 +62,10 @@ function KidPanel({ kid }: { kid: Kid }) {
       .map((r) => ({
         id: r.id,
         name: r.name,
-        done: r.steps.filter((st) => routineStepDone(live, kid.id, r.id, st.id, today)).length,
+        done: r.steps.filter((st) => routineStepDone(dayEvents(prep, kid.id, today), kid.id, r.id, st.id, today)).length,
         total: r.steps.length,
       }))
-  }, [family, kid, today, live])
+  }, [family, kid, today, prep])
 
   const src = `${import.meta.env.BASE_URL}buddies/${THEMES[kid.theme].img}`
   const shown = left.slice(0, MAX_ROWS)
@@ -74,7 +78,7 @@ function KidPanel({ kid }: { kid: Kid }) {
         </div>
         <h1 className="tv-name">{kid.name}</h1>
         <p className="tv-grade">{GRADE_LABEL[kid.grade]}</p>
-        <p className="tv-balance" aria-label={`Balance ${fmt(ws.balance)}`}>{fmt(ws.balance)}</p>
+        <p className="tv-balance" aria-label={`Balance ${fmt(shownBalance)}`}>{fmt(shownBalance)}</p>
         <div className="tv-bar" role="progressbar" aria-label="Balance this week" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}>
           <div className="tv-bar-fill" style={{ width: `${pct}%` }} />
         </div>

@@ -4,6 +4,7 @@ import { bestStreak } from '../../engine/streaks'
 import type { Kid } from '../../engine/types'
 import { useBadges, useStreak } from '../../state/selectors'
 import { useStore } from '../../state/store'
+import { useDerived } from '../../state/derived'
 import { SectionHead } from '../primitives/SectionHead'
 import { BuddyPicker } from './BuddyPicker'
 
@@ -44,7 +45,8 @@ export function BadgesTab({ kid, onPicked }: BadgesTabProps) {
   const { family, events, now } = useStore()
   const list = useBadges(kid)
   const current = useStreak(kid)
-  const best = family ? Math.max(bestStreak(family, kid, events, now), current) : current
+  const prep = useDerived()
+  const best = family ? Math.max(bestStreak(family, kid, events, now, prep), current) : current
   const earnedIds = list.filter((b) => b.earnedAt).map((b) => b.def.id)
   const earnedKey = earnedIds.join(',')
 
