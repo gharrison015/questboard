@@ -3,11 +3,11 @@ import { THEMES } from '../../config/themes'
 import { dateKey } from '../../engine/dates'
 import { formatCents } from '../../engine/money'
 import { choreDayStateLive, liveEvents } from '../../engine/week'
-import type { Grade, Kid } from '../../engine/types'
+import type { Grade, Kid, QBEvent } from '../../engine/types'
 import { useJars, useStreak, useWeek } from '../../state/selectors'
 import { useActions, useKid, useKids, useStore } from '../../state/store'
 import { ChoreIcon } from '../kid/ChoreIcon'
-import { routinesDue, choresDue } from '../kid/choreRows'
+import { choresDue, routineStepDone, routinesDue } from '../kid/choreRows'
 import { mathLineText } from '../kid/MathLine'
 import { Icon } from '../primitives/Icon'
 import { TvClock } from './TvClock'
@@ -19,6 +19,16 @@ const MAX_ROWS = 6
 
 const GRADE_LABEL: Record<Grade, string> = {
   'Pre-K': 'Pre-K', K: 'Kindergarten', '1st': '1st grade', '2nd': '2nd grade', '3rd+': '3rd grade and up',
+}
+
+/** Money the kid really gave away: donations plus gifts to a sibling. `live` is already filtered by liveEvents. */
+function givenTotal(kidId: string, live: QBEvent[]): number {
+  let total = 0
+  for (const e of live) {
+    if (e.type === 'jar.donated' && e.kidId === kidId) total += e.amount
+    else if (e.type === 'jar.gifted' && e.fromKidId === kidId) total += e.amount
+  }
+  return total
 }
 
 function KidPanel({ kid }: { kid: Kid }) {
@@ -43,16 +53,14 @@ function KidPanel({ kid }: { kid: Kid }) {
 
   const routines = useMemo(() => {
     if (!family) return []
-    return routinesDue(family, kid, today).map((r) => {
-      const done = r.steps.filter((st) => {
-        let v = false
-        for (const e of live) {
-          if (e.type === 'routine.step' && e.kidId === kid.id && e.routineId === r.id && e.stepId === st.id && e.date === today) v = e.done
-        }
-        return v
-      }).length
-      return { id: r.id, name: r.name, done, total: r.steps.length }
-    })
+    return routinesDue(family, kid, today)
+      .filter((r) => r.steps.length > 0)
+      .map((r) => ({
+        id: r.id,
+        name: r.name,
+        done: r.steps.filter((st) => routineStepDone(live, kid.id, r.id, st.id, today)).length,
+        total: r.steps.length,
+      }))
   }, [family, kid, today, live])
 
   const src = `${import.meta.env.BASE_URL}buddies/${THEMES[kid.theme].img}`
@@ -78,7 +86,7 @@ function KidPanel({ kid }: { kid: Kid }) {
         <div className="qb-card tv-todo">
           <h2>Still to do today</h2>
           {shown.length > 0 ? (
-            <ul>
+            <ul className="tv-chores">
               {shown.map((c) => (
                 <li key={c.id}>
                   <span className="tv-tile"><ChoreIcon name={c.icon} size={36} /></span>
@@ -101,8 +109,8 @@ function KidPanel({ kid }: { kid: Kid }) {
           ) : null}
         </div>
         <dl className="tv-stats">
-          <div className="tv-stat tv-stat-save"><dt>Saved</dt><dd><b>{formatCents(jars.save)}</b></dd></div>
-          <div className="tv-stat tv-stat-give"><dt>Given</dt><dd><b>{formatCents(jars.give)}</b></dd></div>
+          <div className="tv-stat tv-stat-save"><dt>Saved</dt><dd><b>{fmt(jars.save)}</b></dd></div>
+          <div className="tv-stat tv-stat-give"><dt>Given</dt><dd><b>{fmt(givenTotal(kid.id, live))}</b></dd></div>
           <div className="tv-stat tv-stat-left"><dt>Chores left</dt><dd><b>{left.length}</b></dd></div>
         </dl>
       </section>
@@ -119,14 +127,17 @@ export function TvBoard() {
 
   // One interval for the board's life. The ref lets the tick see the latest kids and selection.
   const latest = useRef({ kids, kidId: kid?.id ?? null })
-  latest.current = { kids, kidId: kid?.id ?? null }
+  const kidId = kid?.id ?? null
+  useEffect(() => {
+    latest.current = { kids, kidId }
+  }, [kids, kidId])
   const rotating = kids.length > 1
   useEffect(() => {
     if (!rotating) return
     const id = window.setInterval(() => {
-      const { kids: ks, kidId } = latest.current
+      const { kids: ks, kidId: cur } = latest.current
       if (ks.length < 2) return
-      const i = ks.findIndex((k) => k.id === kidId)
+      const i = ks.findIndex((k) => k.id === cur)
       setKid(ks[(i + 1) % ks.length].id)
     }, ROTATE_MS)
     return () => window.clearInterval(id)

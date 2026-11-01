@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { choreDayStateLive, liveEvents } from '../../engine/week'
 import { parseKey } from '../../engine/dates'
 import { newId } from '../../engine/ids'
-import type { Chore, DateKey, Family, Kid, Routine } from '../../engine/types'
+import type { Chore, DateKey, Family, Kid, QBEvent, Routine } from '../../engine/types'
 import { useActions, useStore } from '../../state/store'
 import { Icon } from '../primitives/Icon'
 import { useToast } from '../primitives/Toaster'
@@ -67,6 +67,15 @@ export function routinesDue(family: Family, kid: Kid, date: DateKey): Routine[] 
     .filter((r): r is Routine => !!r && r.days.includes(dow))
 }
 
+/** Whether a routine step is checked on `date`, from events already filtered by liveEvents. */
+export function routineStepDone(live: QBEvent[], kidId: string, routineId: string, stepId: string, date: DateKey): boolean {
+  let v = false
+  for (const e of live) {
+    if (e.type === 'routine.step' && e.kidId === kidId && e.routineId === routineId && e.stepId === stepId && e.date === date) v = e.done
+  }
+  return v
+}
+
 export interface ChoreState { box: BoxState; verified: boolean; rejected: boolean }
 
 /**
@@ -92,13 +101,10 @@ export function useDayToggles(kid: Kid, onChecked?: () => void) {
     return { box, verified: s.verified, rejected: s.rejected }
   }, [family, kid, live, now])
 
-  const stepDone = useCallback((routineId: string, stepId: string, date: DateKey): boolean => {
-    let v = false
-    for (const e of live) {
-      if (e.type === 'routine.step' && e.kidId === kid.id && e.routineId === routineId && e.stepId === stepId && e.date === date) v = e.done
-    }
-    return v
-  }, [live, kid.id])
+  const stepDone = useCallback(
+    (routineId: string, stepId: string, date: DateKey): boolean => routineStepDone(live, kid.id, routineId, stepId, date),
+    [live, kid.id],
+  )
 
   const toggleChore = (c: Chore, date: DateKey): void => {
     const s = stateOf(c, date)
