@@ -217,13 +217,14 @@ interface Reason { id: string; label: string; emoji: string; amount?: Cents }
 type Event =
   | { type: 'chore.checked'; kidId; choreId; date; at }
   | { type: 'chore.unchecked'; kidId; choreId; date; at }
-  | { type: 'chore.verified'; kidId; choreId; date; at; pay: Cents }
+  | { type: 'chore.verified'; kidId; choreId; date; at }
+  | { type: 'chore.rejected'; kidId; choreId; date; at }
   | { type: 'routine.step'; kidId; routineId; stepId; date; done: boolean; at }
   | { type: 'deduction.logged'; kidId; reasonId; amount: Cents; date; at }
   | { type: 'earnback.earned'; kidId; skill; amount: Cents; date; at }
   | { type: 'week.closed'; kidId; weekStart; balance: Cents; at }
   | { type: 'jar.allocated'; kidId; jar: 'save'|'spend'|'give'; amount: Cents; at }
-  | { type: 'jar.paidOut'; kidId; jar: 'spend'; amount: Cents; via: string; at }
+  | { type: 'jar.paidOut'; kidId; jar: 'save' | 'spend'; amount: Cents; via: string; at }
   | { type: 'jar.donated'; kidId; amount: Cents; to: string; at }
   | { type: 'jar.gifted'; fromKidId; toKidId; amount: Cents; at }
   | { type: 'entitlement.granted'; key: string; at }
@@ -261,7 +262,21 @@ Design rules that keep the migration cheap: events are immutable and idempotent 
 - Component file structure, naming, and the test harness details.
 - Whether fold detection uses the Viewport Segments API or falls back to a 2-column layout at 1000px+ landscape touch devices (do the fallback at minimum).
 
-## 12. Calls made by the orchestrator (Greg can overrule)
+## 12. Rulings from the builder check (2026-11-01)
+
+A reviewer read this document as the builder and asked nine questions. Answers, now part of the spec:
+
+1. **Devices this round.** One device writes: the kitchen tablet (or whichever device the family installs first). Parent view lives on that same device behind the PIN. TV mode is the same device pinned with `#tv`, or any other browser that has imported a JSON export (Settings, "Export family"). Phones get live data next round with sync. Say this plainly on the Family & Access screen.
+2. **Unchecking.** A kid may uncheck a chore on the current day only, in every verification mode. Past days are read-only for kids; parents can change any day this week. Pay is derived, so unchecking removes that chore's pay (it only ever lowers the kid's own earned pay, never raises it).
+3. **When pay counts.** Pay for a chore dated D belongs to D's week. It counts when: mode `kid-final` and checked; mode `kid-verify` and checked and (a `chore.verified` exists, or now is past local midnight of D and no `chore.rejected` exists); mode `parent-approve` and a `chore.verified` exists. Add `chore.rejected {kidId, choreId, date, at}`. At `week.closed`, kid-verify items are already past midnight so they count; parent-approve items still pending are excluded and the parent view shows "N approvals missed last week" once. A verification recorded after the close does not reopen the closed week.
+4. **PIN recovery.** No family-name reset. At setup the app shows a one-time 8-character recovery code (also included in every JSON export) and asks the parent to write it down. Settings offers "Reset PIN with recovery code" and, failing that, "Erase and start over." Setup copy says why.
+5. **Chore limits and sharing.** Free limit is 10 active chores per kid. Chores belong to one kid; the setup checklist creates a copy for each kid. The starter checklist shows 12 and pre-ticks 5 (Make your bed, Brush teeth is a routine step not a chore, so: Make your bed, Put toys away, Clear your plate, Feed a pet, Put clothes in hamper).
+6. **Kid tabs.** Four: **Today** (hero, day strip, today's chores, routines, earn-it-back when applicable), **Week** (7 columns, tap a day for detail with deduction reasons), **Jars** (payday, split, give), **Badges** (streak, badges, buddies you own, switch buddy). Parent view is separate, reached from the header lock button, with sections: Kids strip, Balance, Log a deduction, Verify, This week (undo), Payday, Shop, Settings.
+7. **Undo and the floor.** Undo is available only for events in the current open week; closed weeks are frozen. The zero floor applies to the week's final sum, not per event: `balance = max(0, start + pay + earnback - deductions)`. Earn-back cap: `earnback <= max(0, deductions)` for the week.
+8. **Cutover.** The repo root move was an ordinary commit with renames, no history rewrite, no force push. Prototype data is all mock; nothing carries over. The new service worker is generated at `/sw.js` (same path as the old one) with `skipWaiting` and `clientsClaim`, and on activate deletes every cache not prefixed `qb-`. The old prototype under `/prototype/` ships without a service worker.
+9. **Jars.** After allocation, coins do not move between jars (the choice is the lesson). Parents can pay out from Save as well as Spend (deep link, `jar.paidOut` with `jar: 'save' | 'spend'`). On a long gap, the app closes each missed week in order; a week with no events for a kid closes at zero and is marked inactive, so an unopened app never grants free weeks.
+
+## 13. Calls made by the orchestrator (Greg can overrule)
 
 - Vite + React instead of Next.js for this round.
 - Shop moved to the parent view; kids see only owned buddies.
