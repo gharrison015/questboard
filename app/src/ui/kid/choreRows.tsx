@@ -30,13 +30,15 @@ interface RowProps {
   lead: ReactNode
   tail?: ReactNode
   onToggle(): void
+  title?: string
 }
 
-export function Row({ label, state, editable, height, lead, tail, onToggle }: RowProps) {
+export function Row({ title, label, state, editable, height, lead, tail, onToggle }: RowProps) {
   return (
     <button
       type="button"
       className="kb-row"
+      title={title}
       data-h={height}
       data-state={state}
       aria-pressed={state !== 'empty'}

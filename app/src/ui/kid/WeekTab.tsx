@@ -17,6 +17,15 @@ export function WeekTab({ kid, onChecked }: { kid: Kid; onChecked?: () => void }
   const [detail, setDetail] = useState<DateKey | null>(null)
   const scroller = useRef<HTMLUListElement>(null)
 
+  // The sideways row only exists on phone widths; the wide grid leaves touches to the shell.
+  const [wide, setWide] = useState(false)
+  useEffect(() => {
+    const measure = (): void => setWide((scroller.current?.clientWidth ?? 0) >= 640)
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [])
+
   // Phone: start the row at today.
   useEffect(() => {
     const el = scroller.current
@@ -28,7 +37,7 @@ export function WeekTab({ kid, onChecked }: { kid: Kid; onChecked?: () => void }
 
   return (
     <div className="kb-weekwrap">
-      <ul className="kb-week" aria-label="Days of the week" ref={scroller} onTouchStart={keepTouch} onTouchEnd={keepTouch}>
+      <ul className="kb-week" aria-label="Days of the week" ref={scroller} {...(wide ? {} : { onTouchStart: keepTouch, onTouchEnd: keepTouch })}>
         {ws.days.map((d) => {
           const future = d > today
           const isToday = d === today
@@ -57,6 +66,7 @@ export function WeekTab({ kid, onChecked }: { kid: Kid; onChecked?: () => void }
                     <Row
                       key={c.id}
                       label={c.label}
+                      title={c.label}
                       state={s.box}
                       editable={isToday && !s.verified}
                       height={48}

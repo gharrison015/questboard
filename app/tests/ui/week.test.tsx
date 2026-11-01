@@ -54,7 +54,7 @@ describe('Week tab and day detail', () => {
     expect(list).toHaveTextContent('Yelling, -$0.50')
     expect(dialog).toHaveTextContent('-$0.50 lost')
     expect(dialog).toHaveTextContent('Brush teeth')
-    expect(within(dialog).getByRole('button', { name: 'Close' })).toBeInTheDocument()
+    expect(within(dialog).getAllByRole('button', { name: 'Close' })).toHaveLength(2)
   })
 
   it('DayDetail says nothing lost on a clean day and coming up for the future', async () => {
@@ -88,7 +88,21 @@ describe('Week tab and day detail', () => {
 
     fireEvent.click(heads[3])
     expect(await screen.findByRole('dialog', { name: 'Wednesday' })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    fireEvent.click(screen.getAllByRole('button', { name: 'Close' })[0])
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  })
+
+  it('Escape closes the day detail', async () => {
+    const adapter = await adapterWith(false)
+    render(
+      <StoreProvider adapter={adapter}>
+        <Probe>{(kid) => <WeekTab kid={kid} />}</Probe>
+      </StoreProvider>,
+    )
+    await screen.findByRole('list', { name: 'Days of the week' })
+    fireEvent.click(screen.getByRole('button', { name: 'Open Wednesday' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Wednesday' })
+    fireEvent.keyDown(dialog, { key: 'Escape' })
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
   })
 

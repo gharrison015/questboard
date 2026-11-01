@@ -1,11 +1,15 @@
+import type { TouchEvent } from 'react'
 import { dateKey, dayFull } from '../../engine/dates'
 import { formatCents } from '../../engine/money'
 import type { DateKey, Kid } from '../../engine/types'
 import { useWeek } from '../../state/selectors'
 import { useStore } from '../../state/store'
+import { Icon } from '../primitives/Icon'
 import { Modal } from '../primitives/Modal'
 import { ChoreIcon } from './ChoreIcon'
 import { choresDue, routinesDue, Row, useDayToggles } from './choreRows'
+
+const keepTouch = (e: TouchEvent): void => e.stopPropagation()
 
 interface DayDetailProps {
   kid: Kid
@@ -20,7 +24,6 @@ export function DayDetail({ kid, date, onClose }: DayDetailProps) {
   const { stateOf, stepDone } = useDayToggles(kid)
   if (!family) return null
 
-  const cents = { cents: ws.useCents }
   const future = date > dateKey(now)
   const lost = ws.lostByDay[date]
   const items = lost?.items ?? []
@@ -28,15 +31,19 @@ export function DayDetail({ kid, date, onClose }: DayDetailProps) {
   const money: string[] = []
   if (future) money.push('Coming up')
   else {
-    if (earned > 0) money.push(`+${formatCents(earned, cents)} earned`)
-    money.push(lost && lost.amount > 0 ? `-${formatCents(lost.amount, cents)} lost` : 'Nothing lost today')
+    if (earned > 0) money.push(`+${formatCents(earned)} earned`)
+    money.push(lost && lost.amount > 0 ? `-${formatCents(lost.amount)} lost` : 'Nothing lost today')
   }
   const chores = choresDue(kid, date)
   const routines = routinesDue(family, kid, date)
 
   return (
     <Modal open title={dayFull(date)} onClose={onClose} className="kb-detail">
-      <h2 className="kb-detail-title">{dayFull(date)}</h2>
+      <div onTouchStart={keepTouch} onTouchEnd={keepTouch} className="kb-detail-body">
+      <div className="kb-detail-head">
+        <h2 className="kb-detail-title">{dayFull(date)}</h2>
+        <button type="button" className="kb-detail-x" aria-label="Close" onClick={onClose}><Icon name="x" size={24} /></button>
+      </div>
       <p className="kb-detail-money" data-tone={future ? 'future' : lost && lost.amount > 0 ? 'bad' : 'good'}>
         {money.join(', ')}
       </p>
@@ -50,7 +57,7 @@ export function DayDetail({ kid, date, onClose }: DayDetailProps) {
               return (
                 <li key={it.eventId} className="kb-detail-item">
                   {emoji ? <span aria-hidden="true">{emoji}</span> : null}
-                  <span>{it.label}, -{formatCents(it.amount, cents)}</span>
+                  <span>{it.label}, -{formatCents(it.amount)}</span>
                 </li>
               )
             })}
@@ -97,6 +104,7 @@ export function DayDetail({ kid, date, onClose }: DayDetailProps) {
       ))}
 
       <button type="button" className="kb-detail-close" onClick={onClose}>Close</button>
+      </div>
     </Modal>
   )
 }

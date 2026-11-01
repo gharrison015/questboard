@@ -481,11 +481,43 @@
   }
   .kb-wk-card { flex: none; padding: 6px; }
   .kb-wk-head { flex-direction: column; justify-content: center; gap: 0; }
-  .kb-wk-rows .kb-row { flex-wrap: wrap; }
+  .kb-wk-rows .kb-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas: "ico pay box" "label label label";
+    align-items: center;
+    gap: 2px 4px;
+    min-height: 0;
+    padding: 4px;
+  }
+  .kb-wk-rows .kb-row-ico { grid-area: ico; width: 32px; height: 32px; }
+  .kb-wk-rows .kb-pay { grid-area: pay; justify-self: end; font-size: 0.75rem; }
+  .kb-wk-rows .kb-box { grid-area: box; width: 24px; height: 24px; border-width: 2px; }
+  .kb-wk-rows .kb-row-label {
+    grid-area: label;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 }
 
 /* Day detail */
-.kb-detail { display: flex; flex-direction: column; gap: 12px; }
+.kb-detail-body { display: flex; flex-direction: column; gap: 12px; }
+.kb-detail-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.kb-detail-x {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--card-2);
+  color: var(--ink);
+  cursor: pointer;
+}
+.kb-detail-x:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
 .kb-detail-title { margin: 0; font-size: 1.5rem; }
 .kb-detail-money { margin: 0; font-weight: 800; font-size: 1.125rem; }
 .kb-detail-money[data-tone="good"] { color: var(--good); }
