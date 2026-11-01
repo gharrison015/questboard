@@ -1,4 +1,4 @@
-import { dateKey, parseKey, weekStartKey } from '../engine/dates'
+import { dateKey, parseKey, weekDays, weekStartKey } from '../engine/dates'
 import { newId } from '../engine/ids'
 import { newFamily } from '../engine/reducer'
 import type { Chore, Family, Kid, QBEvent } from '../engine/types'
@@ -26,18 +26,18 @@ export async function seedDemoFamily(now: Date = new Date()): Promise<{ family: 
     name: 'Nolan', grade: '1st', theme: 'truck', routineIds,
     charity: { name: 'Berks County Animal Rescue' },
     chores: [
-      chore('Make your bed', 'star'), chore('Feed the dog', 'star'),
-      chore('Put toys away', 'star', [1, 3, 4]), chore('Homework folder', 'star', [1, 2, 3, 4]),
-      chore('Clear your plate', 'star'),
+      chore('Make your bed', 'bed'), chore('Feed the dog', 'dog'),
+      chore('Put toys away', 'toys', [1, 3, 4]), chore('Homework folder', 'homework', [1, 2, 3, 4]),
+      chore('Take out trash', 'trash', ALL_DAYS, 100),
     ],
   }
   const makenna: Omit<Kid, 'id' | 'order'> = {
     name: 'Makenna', grade: 'Pre-K', theme: 'unicorn', routineIds,
     charity: { name: 'Ronald McDonald House' },
     chores: [
-      chore('Put shoes away', 'star'), chore('Help set table', 'star', [1, 2, 3, 4, 5]),
-      chore('Tidy bedroom', 'star', [0, 3, 6]), chore('Water the plants', 'star'),
-      chore('Pick up books', 'star'),
+      chore('Put shoes away', 'shoes'), chore('Help set table', 'table', [1, 2, 3, 4, 5]),
+      chore('Tidy bedroom', 'broom', [0, 3, 6]), chore('Water the plants', 'plant'),
+      chore('Pick up books', 'book'),
     ],
   }
 
@@ -53,15 +53,17 @@ export async function seedDemoFamily(now: Date = new Date()): Promise<{ family: 
   const at = now.toISOString()
   const events: QBEvent[] = []
   const [nKid, mKid] = family.kids
-  for (const c of nKid.chores.slice(0, 2)) {
+  // Nolan: bed, dog and the paid trash chore are checked today; the rest stay open.
+  for (const c of [nKid.chores[0], nKid.chores[1], nKid.chores[4]]) {
     events.push({ id: newId(), at, type: 'chore.checked', kidId: nKid.id, choreId: c.id, date: today })
   }
   events.push({ id: newId(), at, type: 'chore.checked', kidId: mKid.id, choreId: mKid.chores[0].id, date: today })
-  const yelling = family.reasons.find((r) => r.label === 'Yelling') ?? family.reasons[0]
-  const notListening = family.reasons[0]
+  // Two deductions this week: Monday $1 (not listening), Wednesday $0.50 (yelling). Makenna has none.
+  const days = weekDays(weekStartKey(today, base.money.weekStartDay))
+  const reason = (label: string) => family.reasons.find((r) => r.label === label) ?? family.reasons[0]
   events.push(
-    { id: newId(), at, type: 'deduction.logged', kidId: nKid.id, reasonId: yelling.id, amount: family.money.deductionDefault, date: today },
-    { id: newId(), at, type: 'deduction.logged', kidId: nKid.id, reasonId: notListening.id, amount: family.money.deductionDefault, date: today },
+    { id: newId(), at, type: 'deduction.logged', kidId: nKid.id, reasonId: reason('Not listening').id, amount: 100, date: days[(1 - base.money.weekStartDay + 7) % 7] },
+    { id: newId(), at, type: 'deduction.logged', kidId: nKid.id, reasonId: reason('Yelling').id, amount: 50, date: days[(3 - base.money.weekStartDay + 7) % 7] },
   )
   return { family, events }
 }
