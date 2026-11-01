@@ -17,6 +17,7 @@ export function WelcomeStep({ state, set }: StepProps) {
           onChange={(e) => set({ familyName: e.target.value })}
         />
       </div>
+      <p className="st-hint">Version {import.meta.env.VITE_APP_VERSION ?? 'dev'}</p>
     </>
   )
 }

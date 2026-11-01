@@ -1,17 +1,39 @@
+import { execSync } from 'node:child_process'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
+// Build id: commit plus build time. Shown in setup and Settings, written to version.json so an
+// open page can tell it is stale, and used to cache-bust the worker add-on script.
+function commit(): string {
+  if (process.env.GITHUB_SHA) return process.env.GITHUB_SHA.slice(0, 7)
+  try {
+    return execSync('git rev-parse --short HEAD').toString().trim()
+  } catch {
+    return 'local'
+  }
+}
+const BUILD = `${commit()}-${Date.now().toString(36)}`
+
 export default defineConfig({
+  define: { 'import.meta.env.VITE_APP_VERSION': JSON.stringify(BUILD) },
   base: '/questboard/',
   plugins: [
     react(),
+    {
+      name: 'qb-version-file',
+      apply: 'build',
+      generateBundle() {
+        this.emitFile({ type: 'asset', fileName: 'version.json', source: JSON.stringify({ build: BUILD }) })
+      },
+    },
     VitePWA({
       registerType: 'prompt',
       filename: 'sw.js',
       workbox: {
         cacheId: 'qb',
-        importScripts: ['sw-migrate.js'],
+        // The query changes every build so a stale HTTP-cached copy (Pages sends max-age=600) is never reused.
+        importScripts: [`sw-migrate.js?v=${BUILD}`],
         clientsClaim: true,
         cleanupOutdatedCaches: true,
         navigateFallback: '/questboard/index.html',

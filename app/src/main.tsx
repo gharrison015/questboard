@@ -4,6 +4,7 @@ import { registerSW } from 'virtual:pwa-register'
 import './styles/base.css'
 import './styles/components.css'
 import App from './App.tsx'
+import { watchFreshness } from './app/freshness.ts'
 import { keepPagePinned } from './app/keepPagePinned.ts'
 import { markUpdateReady } from './app/swUpdate.ts'
 import { StoreProvider } from './state/store.tsx'
@@ -19,6 +20,7 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (hadController) markUpdateReady(async () => window.location.reload())
   })
+  watchFreshness()
 }
 
 keepPagePinned()
