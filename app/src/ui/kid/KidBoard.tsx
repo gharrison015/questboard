@@ -40,7 +40,7 @@ function Board({ kid }: { kid: Kid }) {
           {tab === 'today' ? <TodayTab kid={kid} onChecked={hop} /> : null}
           {tab === 'week' ? <WeekTab kid={kid} onChecked={hop} /> : null}
           {tab === 'jars' ? <JarsTab kid={kid} /> : null}
-          {tab === 'badges' ? <BadgesTab /> : null}
+          {tab === 'badges' ? <BadgesTab kid={kid} onPicked={hop} /> : null}
         </div>
       </div>
       <Celebration kid={kid} date={today} perfect={perfect} />

@@ -625,3 +625,56 @@
   .kb-jarcard-drop[data-run="true"] { animation: none; }
   .kb-jarbar-fill { transition: none; }
 }
+
+/* Badges tab */
+.kb-badgecard { display: flex; flex-direction: column; gap: 12px; }
+.kb-streak { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.kb-streak-photo { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; box-shadow: var(--shadow); }
+.kb-streak-num { margin: 0; color: var(--ink); display: flex; align-items: baseline; gap: 6px; }
+.kb-streak-num b { font-size: 2.5rem; font-weight: 800; line-height: 1; }
+.kb-streak-num span { font-size: 1rem; font-weight: 700; color: var(--ink-2); }
+.kb-streak-best { margin: 0 0 0 auto; color: var(--ink-2); font-weight: 700; }
+.kb-badgegrid, .kb-buddies {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+}
+.kb-badge {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 8px 4px; text-align: center; min-width: 0;
+}
+.kb-badge-emoji {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 64px; height: 64px; border-radius: 50%; font-size: 40px; line-height: 1;
+  filter: drop-shadow(0 2px 3px color-mix(in oklab, var(--ink) 25%, transparent));
+}
+.kb-badge[data-earned="false"] .kb-badge-emoji {
+  border: 2px dashed var(--line);
+  filter: grayscale(1);
+  opacity: 0.45;
+}
+.kb-badge[data-fresh="true"] .kb-badge-emoji { animation: qb-pop 500ms ease-out 1; }
+.kb-badge-name { font-weight: 800; font-size: 0.875rem; color: var(--ink); }
+.kb-badge-note { font-size: 0.75rem; font-weight: 600; color: var(--ink-2); }
+@keyframes qb-pop {
+  0% { transform: scale(0.6); }
+  60% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+.kb-buddytile {
+  width: 100%; min-height: 96px; min-width: 96px; padding: 6px;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  border: 2px solid transparent; border-radius: var(--r-md);
+  background: var(--card-2); color: var(--ink); cursor: pointer;
+}
+.kb-buddytile[aria-pressed="true"] { border-color: var(--ink); }
+.kb-buddytile-img {
+  width: 56px; height: 56px; object-fit: contain;
+  filter: drop-shadow(0 4px 6px color-mix(in oklab, var(--ink) 25%, transparent));
+}
+.kb-buddytile-name { font-weight: 700; font-size: 0.8125rem; }
+.kb-buddytile-tag { font-size: 0.75rem; font-weight: 800; color: var(--ink-2); }
+.kb-buddytile:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .kb-badge[data-fresh="true"] .kb-badge-emoji { animation: none; }
+}

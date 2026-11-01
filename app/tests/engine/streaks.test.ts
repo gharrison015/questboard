@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { badges, BADGES, type BadgeCtx } from '../../src/content/badges'
-import { perfectDay, streak, unverified, weekStatesFor } from '../../src/engine/streaks'
+import { bestStreak, perfectDay, streak, unverified, weekStatesFor } from '../../src/engine/streaks'
 import { jars } from '../../src/engine/jars'
 import type { Family, QBEvent } from '../../src/engine/types'
 import { ev, makeFamily, nolan, TRASH } from '../fixtures'
@@ -164,5 +164,15 @@ describe('unverified', () => {
     expect(unverified(pa, pa.kids[0], [check], later)).toEqual([{ choreId: TRASH, date: dk(8) }])
     const rej = ev({ type: 'chore.rejected', kidId: nolan, choreId: TRASH, date: dk(8) }, at(9))
     expect(unverified(pa, pa.kids[0], [check, rej], later)).toEqual([])
+  })
+})
+
+describe('bestStreak', () => {
+  it('finds the longest run even after a break', () => {
+    const family = makeFamily()
+    const kid = family.kids[0]
+    const events = [...perfect(1), ...perfect(2), ...perfect(3), ...perfect(5), ...perfect(6)]
+    expect(bestStreak(family, kid, events, new Date(2026, 9, 8, 10))).toBe(3)
+    expect(bestStreak(family, kid, [], new Date(2026, 9, 8, 10))).toBe(0)
   })
 })

@@ -34,6 +34,7 @@ export const ICONS = {
   trash: '<path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12M10 11v5M14 11v5"/>',
   edit: '<path d="M4 20l1-4L16.5 4.5a2 2 0 0 1 3 3L8 19l-4 1z"/><path d="M14.5 6.5l3 3"/>',
   check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  flame: '<path d="M12 3c.5 3.2 5 5.4 5 10.2A5 5 0 0 1 7 13.2c0-1.8.8-3 1.8-4 .2 1.4.8 2 1.6 2.3C10 8.6 10.6 5.4 12 3z"/>',
   x: '<path d="M6 6l12 12M18 6L6 18"/>',
 } as const
 

@@ -76,6 +76,19 @@ export function perfectDayKeys(family: Family, kid: Kid, events: QBEvent[], now:
   return out
 }
 
+/** The longest run of consecutive perfect days from the family's first day through today. */
+export function bestStreak(family: Family, kid: Kid, events: QBEvent[], now: Date): number {
+  let best = 0
+  let run = 0
+  let prev: DateKey | null = null
+  for (const d of perfectDayKeys(family, kid, events, now)) {
+    run = prev !== null && d === addDays(prev, 1) ? run + 1 : 1
+    if (run > best) best = run
+    prev = d
+  }
+  return best
+}
+
 /** The date on which a run of n consecutive perfect days was first reached, or null. */
 export function streakReachedOn(perfectDays: DateKey[], n: number): DateKey | null {
   let run = 0

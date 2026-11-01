@@ -43,7 +43,7 @@ export async function seedDemoFamily(now: Date = new Date()): Promise<{ family: 
 
   const family: Family = {
     ...base,
-    createdAt: parseKey(weekStartKey(today, base.money.weekStartDay)).toISOString(),
+    createdAt: parseKey(addDays(weekStartKey(today, base.money.weekStartDay), -14)).toISOString(),
     pinSalt,
     pinHash: await hashPin('1234', pinSalt),
     recoveryHash: await hashPin('DEMO-CODE', recoverySalt),
@@ -72,6 +72,13 @@ export async function seedDemoFamily(now: Date = new Date()): Promise<{ family: 
     { id: newId(), at, type: 'week.closed', kidId: nKid.id, weekStart: lastWeek, balance: 1200 },
     { id: newId(), at, type: 'week.closed', kidId: mKid.id, weekStart: lastWeek, balance: 500 },
     { id: newId(), at, type: 'jar.allocated', kidId: mKid.id, jar: 'save', amount: 500 },
+  )
+  // History for the Badges tab: a paid chore checked last week, and an older week whose
+  // 100 went to Give. That week nets to zero unsplit, so the amounts above stay as stated.
+  events.push(
+    { id: newId(), at, type: 'chore.checked', kidId: nKid.id, choreId: nKid.chores[4].id, date: addDays(lastWeek, 1) },
+    { id: newId(), at, type: 'week.closed', kidId: nKid.id, weekStart: addDays(lastWeek, -7), balance: 100 },
+    { id: newId(), at, type: 'jar.allocated', kidId: nKid.id, jar: 'give', amount: 100 },
   )
   return { family, events }
 }
