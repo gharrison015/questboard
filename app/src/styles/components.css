@@ -294,6 +294,20 @@ body {
   color: var(--bg);
   font-weight: 700;
   box-shadow: var(--shadow);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  pointer-events: auto;
+}
+.qb-toast-action {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 2px solid currentColor;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: inherit;
+  font-weight: 800;
+  cursor: pointer;
 }
 
 /* Shell */

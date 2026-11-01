@@ -20,6 +20,8 @@ export interface MoneySettings {
   earnBackPerCorrect: Cents
 }
 
+export interface PayHandles { paypal?: string; cashapp?: string; venmo?: string }
+
 export interface Entitlement { key: string; grantedAt: string }
 
 export interface Chore {
@@ -69,6 +71,8 @@ export interface Family {
   routines: Routine[]
   kids: Kid[]
   entitlements: Entitlement[]
+  /** Payment handles for parent payout links. */
+  payHandles?: PayHandles
 }
 
 export type JarKey = 'save' | 'spend' | 'give'

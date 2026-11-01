@@ -47,6 +47,7 @@ export async function seedDemoFamily(now: Date = new Date()): Promise<{ family: 
     pinSalt,
     pinHash: await hashPin('1234', pinSalt),
     recoveryHash: await hashPin('DEMO-CODE', recoverySalt),
+    payHandles: { paypal: 'harrisonfamily' },
     kids: [nolan, makenna].map((k, order) => ({ ...k, id: newId(), order })),
   }
 

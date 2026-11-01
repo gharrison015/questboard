@@ -1,0 +1,79 @@
+/* Parent view. Tokens only. The view scrolls inside .qb-main, never the page. */
+.pr-view { display: grid; gap: 16px; padding-bottom: 24px; }
+.pr-bar { display: flex; align-items: center; gap: 8px; }
+.pr-title { flex: 1; margin: 0; font-family: var(--font-display); font-size: 1.375rem; }
+
+/* One column on a phone, two on a tablet. */
+.pr-cols { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); align-items: start; }
+.pr-col { display: grid; gap: 16px; min-width: 0; }
+.qb-shell[data-mode="tablet"] .pr-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+.pr-section {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: var(--r-lg);
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+:root[data-appearance="calm"] .pr-section { box-shadow: none; border: 1px solid var(--line); }
+.pr-balance { display: grid; gap: 8px; }
+.pr-balance-amt { margin: 0; font-family: var(--font-display); font-size: 3rem; font-weight: 700; line-height: 1.1; }
+.pr-line { margin: 0; color: var(--ink-2); font-weight: 700; }
+.pr-quiet { margin: 0; color: var(--ink-3); font-size: 0.9375rem; }
+.pr-sub { margin: 4px 0 0; font-size: 0.9375rem; color: var(--ink-2); }
+
+/* Deduction chips, three across */
+.pr-reasons { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.pr-reason {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 2px;
+  min-height: 88px;
+  padding: 8px 4px;
+  border: 2px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--card-2);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+.pr-reason[aria-disabled="true"] { opacity: 0.45; cursor: not-allowed; }
+.pr-reason:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.pr-emoji { font-size: 28px; line-height: 1; filter: drop-shadow(0 1.5px 2px color-mix(in oklab, var(--ink) 30%, transparent)); }
+.pr-reason-label { font-weight: 800; font-size: 0.875rem; text-align: center; overflow-wrap: anywhere; }
+.pr-reason-amt { color: var(--bad); font-weight: 800; font-size: 0.875rem; }
+
+/* Rows */
+.pr-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.pr-row { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+.pr-row-text { flex: 1; min-width: 0; display: grid; }
+.pr-row-main { flex: 1; min-width: 0; font-weight: 700; overflow-wrap: anywhere; }
+.pr-row-sub { color: var(--ink-3); font-size: 0.875rem; }
+.pr-struck { text-decoration: line-through; color: var(--ink-3); }
+.qb-btn.pr-dense { min-height: 44px; padding: 0 14px; }
+
+.pr-note { display: flex; align-items: center; gap: 8px; margin: 0; padding: 8px 12px; border: 1px solid var(--warn); border-radius: var(--r-md); color: var(--warn); font-weight: 700; }
+.pr-note span { flex: 1; }
+
+/* Payday */
+.pr-pay { display: grid; gap: 8px; }
+.pr-pay-head { margin: 0; font-weight: 800; }
+.qb-btn.pr-link { text-decoration: none; }
+
+/* Shop. The art box is fixed, the name sits below it. */
+.pr-banner { margin: 0; color: var(--warn); font-weight: 800; }
+.pr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 12px; }
+.pr-tile { display: grid; justify-items: center; align-content: start; gap: 6px; padding: 8px; border: 2px solid var(--line); border-radius: var(--r-md); background: var(--card-2); text-align: center; }
+.pr-tile[data-state="using"] { border-color: var(--ink); }
+.pr-tile[data-state="locked"] .pr-artbox { opacity: 0.7; }
+.pr-artbox { width: 96px; height: 96px; display: grid; place-items: center; overflow: hidden; }
+.pr-art { width: 96px; height: 96px; object-fit: contain; display: block; }
+.pr-tile-name { margin: 0; font-weight: 800; font-size: 0.875rem; overflow-wrap: anywhere; }
+.pr-tile-state { margin: 0; color: var(--ink-3); font-weight: 700; font-size: 0.875rem; }
+.pr-stickers { margin: 0; min-height: 96px; display: grid; place-items: center; font-size: 28px; line-height: 1.3; overflow-wrap: anywhere; }
+
+.pr-modal-title { margin: 0 0 16px; font-family: var(--font-display); font-size: 1.25rem; }
+.pr-modal-actions { display: flex; gap: 8px; }
+.pr-modal-actions .qb-btn { flex: 1; }

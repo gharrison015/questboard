@@ -2,7 +2,7 @@ import { MONEY_PRESETS } from './money'
 import { choreLimit, kidLimit, ownsTheme } from './entitlements'
 import { newId } from './ids'
 import type {
-  Appearance, Chore, Family, Kid, MoneySettings, Reason, Routine, VerificationMode,
+  Appearance, Chore, Family, Kid, MoneySettings, PayHandles, Reason, Routine, VerificationMode,
 } from './types'
 
 export class LimitError extends Error {
@@ -34,6 +34,7 @@ export type FamilyAction =
   | { type: 'verification.set'; mode: VerificationMode }
   | { type: 'appearance.set'; appearance: Appearance }
   | { type: 'entitlement.grant'; key: string }
+  | { type: 'payHandles.set'; handles: PayHandles }
   | { type: 'pin.set'; pinHash: string; pinSalt: string; recoveryHash: string }
 
 const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6]
@@ -143,6 +144,14 @@ export function applyFamilyAction(f: Family, a: FamilyAction): Family {
     case 'entitlement.grant':
       if (f.entitlements.some((e) => e.key === a.key)) return f
       return { ...f, entitlements: [...f.entitlements, { key: a.key, grantedAt: new Date().toISOString() }] }
+    case 'payHandles.set': {
+      const clean: PayHandles = {}
+      for (const k of ['paypal', 'cashapp', 'venmo'] as const) {
+        const v = a.handles[k]?.trim().replace(/^[@$]/, '')
+        if (v) clean[k] = v
+      }
+      return { ...f, payHandles: clean }
+    }
     case 'pin.set':
       return { ...f, pinHash: a.pinHash, pinSalt: a.pinSalt, recoveryHash: a.recoveryHash }
     default: {

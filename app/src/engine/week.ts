@@ -42,15 +42,21 @@ function byTime(events: QBEvent[]): QBEvent[] {
     .map((x) => x.e)
 }
 
-/** Drops every event that is the target of an undo which is itself not undone. */
-export function liveEvents(events: QBEvent[]): QBEvent[] {
+/** Ids that an effective undo points at. An undo that was itself undone does not count. */
+export function undoneIds(events: QBEvent[]): Set<string> {
   const sorted = byTime(events)
   const undone = new Set<string>()
   for (let i = sorted.length - 1; i >= 0; i--) {
     const e = sorted[i]
     if (e.type === 'undo' && !undone.has(e.id)) undone.add(e.targetEventId)
   }
-  return sorted.filter((e) => e.type !== 'undo' && !undone.has(e.id))
+  return undone
+}
+
+/** Drops every event that is the target of an undo which is itself not undone. */
+export function liveEvents(events: QBEvent[]): QBEvent[] {
+  const undone = undoneIds(events)
+  return byTime(events).filter((e) => e.type !== 'undo' && !undone.has(e.id))
 }
 
 /** Same as choreDayState but trusts that `live` is already filtered and sorted by liveEvents. */

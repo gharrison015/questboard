@@ -63,15 +63,15 @@ describe('app shell', () => {
     expect(enter).toHaveAttribute('aria-disabled', 'false')
     fireEvent.click(enter)
     await waitFor(() => expect(dialog).toHaveClass('shake'))
-    expect(screen.queryByText(/Parent view \(coming/)).toBeNull()
+    expect(screen.queryByText(/Log a deduction/)).toBeNull()
 
     for (const d of '1234') fireEvent.click(screen.getByRole('button', { name: d }))
     fireEvent.click(screen.getByRole('button', { name: 'Enter' }))
-    await screen.findByText(/Parent view \(coming in Task 14\)/)
+    await screen.findByRole('region', { name: 'Log a deduction' })
     expect(screen.queryByRole('dialog')).toBeNull()
 
     fireEvent.click(screen.getByRole('button', { name: 'Lock' }))
-    await waitFor(() => expect(screen.queryByText(/Parent view \(coming/)).toBeNull())
+    await waitFor(() => expect(screen.queryByText(/Log a deduction/)).toBeNull())
   })
 
   it('closes the gate on Escape', async () => {
@@ -117,7 +117,7 @@ describe('app shell', () => {
     render(<StoreProvider adapter={adapter}><Probe /><AppShell /></StoreProvider>)
     await screen.findByRole('banner')
     act(() => actions.enterParent())
-    expect(screen.queryByText(/Parent view \(coming/)).toBeNull()
+    expect(screen.queryByText(/Log a deduction/)).toBeNull()
     expect(screen.getByRole('main')).toBeInTheDocument()
   })
 })

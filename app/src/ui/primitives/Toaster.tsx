@@ -1,26 +1,29 @@
 import { useSyncExternalStore } from 'react'
 
-interface Toast { id: number; text: string }
+interface ToastAction { label: string; onClick(): void }
+interface Toast { id: number; text: string; action?: ToastAction }
 
 let toasts: Toast[] = []
 let nextId = 1
 const listeners = new Set<() => void>()
 const emit = (): void => listeners.forEach((l) => l())
 
-function show(text: string, ms = 3000): void {
-  const id = nextId++
-  toasts = [...toasts, { id, text }]
+function dismiss(id: number): void {
+  toasts = toasts.filter((t) => t.id !== id)
   emit()
-  window.setTimeout(() => {
-    toasts = toasts.filter((t) => t.id !== id)
-    emit()
-  }, ms)
 }
 
-const api = { show }
+function show(text: string, ms = 3000, action?: ToastAction): void {
+  const id = nextId++
+  toasts = [...toasts, { id, text, action }]
+  emit()
+  window.setTimeout(() => dismiss(id), ms)
+}
+
+const api = { show, dismiss }
 
 /** Module-level queue, so any component can raise a toast without a provider. */
-export function useToast(): { show(text: string, ms?: number): void } {
+export function useToast(): { show(text: string, ms?: number, action?: ToastAction): void; dismiss(id: number): void } {
   return api
 }
 
@@ -31,7 +34,14 @@ export function Toaster() {
   )
   return (
     <div className="qb-toaster" role="status" aria-live="polite">
-      {list.map((t) => <div key={t.id} className="qb-toast">{t.text}</div>)}
+      {list.map((t) => <div key={t.id} className="qb-toast">
+          <span>{t.text}</span>
+          {t.action ? (
+            <button type="button" className="qb-toast-action" onClick={() => { t.action?.onClick(); dismiss(t.id) }}>
+              {t.action.label}
+            </button>
+          ) : null}
+        </div>)}
     </div>
   )
 }
