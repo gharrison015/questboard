@@ -371,8 +371,11 @@
       text-align: center;
       gap: 8px;
     }
+    /* The buddy also shrinks with screen height so short landscape screens
+       (Echo Show 5 at 960x480) keep the money math and jar chips in view. */
     .kb-buddy-wrap {
-      width: min(100%, 280px);
+      width: min(100%, clamp(96px, calc(100vh - 340px), 280px));
+      width: min(100%, clamp(96px, calc(100dvh - 340px), 280px));
       height: auto;
       aspect-ratio: 1;
     }

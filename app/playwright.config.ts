@@ -21,5 +21,8 @@ export default defineConfig({
     { name: 'ipad', use: { viewport: { width: 1180, height: 820 }, hasTouch: true } },
     { name: 'fold', use: { viewport: { width: 1030, height: 880 }, hasTouch: true } },
     { name: 'tv', use: { viewport: { width: 1920, height: 1080 }, hasTouch: false } },
+    // Amazon devices: Echo Show 5 is the shortest landscape screen we support; Fire 7 is the smallest Fire tablet.
+    { name: 'echo-show-5', use: { viewport: { width: 960, height: 480 }, hasTouch: true } },
+    { name: 'fire-7', use: { viewport: { width: 1024, height: 600 }, hasTouch: true } },
   ],
 })

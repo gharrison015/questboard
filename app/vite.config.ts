@@ -11,6 +11,7 @@ export default defineConfig({
       filename: 'sw.js',
       workbox: {
         cacheId: 'qb',
+        importScripts: ['sw-migrate.js'],
         clientsClaim: true,
         cleanupOutdatedCaches: true,
         navigateFallback: '/questboard/index.html',
