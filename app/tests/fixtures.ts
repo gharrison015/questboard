@@ -30,6 +30,7 @@ export function makeFamily(overrides: Partial<Family> = {}): Family {
     createdAt: '2026-10-01T00:00:00.000Z',
     pinHash: '',
     pinSalt: '',
+    recoveryHash: '',
     money: {
       startAmount: 1000,
       deductionDefault: 50,

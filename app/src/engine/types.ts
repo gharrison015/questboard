@@ -52,6 +52,7 @@ export interface Kid {
   routineIds: string[]
   archived?: boolean
   order: number
+  createdAt?: string
 }
 
 export interface Family {
@@ -60,6 +61,7 @@ export interface Family {
   createdAt: string
   pinHash: string
   pinSalt: string
+  recoveryHash: string
   money: MoneySettings
   verification: VerificationMode
   appearance: Appearance
