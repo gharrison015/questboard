@@ -20,10 +20,17 @@ export function WeekTab({ kid, onChecked }: { kid: Kid; onChecked?: () => void }
   // The sideways row only exists on phone widths; the wide grid leaves touches to the shell.
   const [wide, setWide] = useState(false)
   useEffect(() => {
-    const measure = (): void => setWide((scroller.current?.clientWidth ?? 0) >= 640)
-    measure()
-    window.addEventListener('resize', measure)
-    return () => window.removeEventListener('resize', measure)
+    const el = scroller.current
+    if (!el) return
+    const apply = (width: number): void => setWide(width >= 640)
+    apply(el.clientWidth)
+    if (typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width
+      apply(w ?? el.clientWidth)
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
   }, [])
 
   // Phone: start the row at today.
