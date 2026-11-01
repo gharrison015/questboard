@@ -22,7 +22,7 @@ export function parseDollars(input: string): Cents | null {
 }
 
 export function anyCents(values: Cents[]): boolean {
-  return values.some((v) => v !== 0)
+  return values.some((v) => v % 100 !== 0)
 }
 
 type PresetKey = 'keep' | 'earn' | 'both'

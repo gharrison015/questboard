@@ -44,9 +44,12 @@ describe('parseDollars', () => {
 })
 
 describe('anyCents', () => {
-  it('detects non-zero values', () => {
+  it('detects sub-dollar parts', () => {
     expect(anyCents([0, 0])).toBe(false)
     expect(anyCents([0, 5])).toBe(true)
+    expect(anyCents([2000, 100])).toBe(false)
+    expect(anyCents([2000, 50])).toBe(true)
+    expect(anyCents([])).toBe(false)
   })
 })
 

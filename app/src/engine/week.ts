@@ -141,8 +141,7 @@ export function weekState(family: Family, kid: Kid, events: QBEvent[], weekStart
     if (e.type === 'week.closed' && e.kidId === kid.id && e.weekStart === weekStart) closedBalance = e.balance
   }
 
-  // anyCents flags nonzero values, so pass the sub-dollar remainders.
-  const useCents = anyCents(amounts.map((v) => v % 100))
+  const useCents = anyCents(amounts)
 
   return {
     weekStart,
