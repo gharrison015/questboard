@@ -4,6 +4,7 @@ Newest first. Each entry: date, decision, why. The spec holds the full design; t
 
 ## 2026-11-01
 
+- **3D lift on buddies and emoji (Greg, mid-build).** Soft drop shadows on buddy images, avatar chips and content emoji; idle float on the hero buddy, a hop on chore check or kid switch, a pop when a badge is earned. All off under reduced motion.
 - **Build the real app now, local-first.** Greg wants a production-feeling app Nolan can use this week. Cloud sync (Supabase) is the next round; the storage adapter boundary is designed in now.
 - **Vite + React + TypeScript, not Next.js.** No server exists yet, so Next adds nothing; Supabase works client-side with RLS when it arrives. Orchestrator's call.
 - **Money style = Both by default**, with Keep it and Earn it as presets on one engine (start amount, pay per chore, deduction). Resolves the Greg (countdown) versus Amanda (earn from zero) debate: expected chores are unpaid, extra jobs pay, misbehavior deducts.
