@@ -61,27 +61,33 @@ function choreDayStateLive(
   live: QBEvent[],
   now: Date,
 ): ChoreDayState {
-  let lastCheck: QBEvent | undefined
-  for (const e of live) {
+  let lastIdx = -1
+  for (let i = 0; i < live.length; i++) {
+    const e = live[i]
     if (
       (e.type === 'chore.checked' || e.type === 'chore.unchecked') &&
       e.kidId === kid.id && e.choreId === chore.id && e.date === date
-    ) lastCheck = e
+    ) lastIdx = i
   }
   const none: ChoreDayState = { checked: false, verified: false, rejected: false, pending: false, pays: false, pay: 0 }
-  if (!lastCheck || lastCheck.type !== 'chore.checked') return none
+  if (lastIdx < 0 || live[lastIdx].type !== 'chore.checked') return none
 
-  const after = ts(lastCheck)
-  const matches = (e: QBEvent, type: 'chore.verified' | 'chore.rejected'): boolean =>
-    e.type === type && e.kidId === kid.id && e.choreId === chore.id && e.date === date && ts(e) >= after && e.id !== lastCheck?.id
-  const verified = live.some((e) => matches(e, 'chore.verified'))
-  const rejected = live.some((e) => matches(e, 'chore.rejected'))
+  // The latest verify or reject after the last check decides; sort position breaks timestamp ties.
+  let decision: 'verified' | 'rejected' | undefined
+  for (let i = lastIdx + 1; i < live.length; i++) {
+    const e = live[i]
+    if (e.kidId !== kid.id || e.choreId !== chore.id || e.date !== date) continue
+    if (e.type === 'chore.verified') decision = 'verified'
+    else if (e.type === 'chore.rejected') decision = 'rejected'
+  }
+  const verified = decision === 'verified'
+  const rejected = decision === 'rejected'
 
   let pays: boolean
-  if (rejected) pays = false
+  if (decision) pays = verified
   else if (family.verification === 'kid-final') pays = true
-  else if (family.verification === 'kid-verify') pays = verified || isPastMidnightOf(date, now)
-  else pays = verified
+  else if (family.verification === 'kid-verify') pays = isPastMidnightOf(date, now)
+  else pays = false
 
   const pending = !pays && !rejected
   return { checked: true, verified, rejected, pending, pays, pay: pays ? chore.pay : 0 }
@@ -99,7 +105,13 @@ export function choreDayState(
 }
 
 export function weekState(family: Family, kid: Kid, events: QBEvent[], weekStart: DateKey, now: Date): WeekState {
-  const live = liveEvents(events)
+  const all = liveEvents(events)
+  let closeEvent: Extract<QBEvent, { type: 'week.closed' }> | undefined
+  for (const e of all) {
+    if (e.type === 'week.closed' && e.kidId === kid.id && e.weekStart === weekStart) closeEvent = e
+  }
+  // A closed week is frozen: nothing recorded after the close changes the live fields.
+  const live = closeEvent ? all.filter((e) => ts(e) <= ts(closeEvent)) : all
   const days = weekDays(weekStart)
   const inWeek = new Set(days)
   const start = effectiveMoney(family, kid).startAmount
@@ -130,16 +142,13 @@ export function weekState(family: Family, kid: Kid, events: QBEvent[], weekStart
       amounts.push(e.amount)
     } else if (e.type === 'earnback.earned' && e.kidId === kid.id && inWeek.has(e.date)) {
       earnRaw += e.amount
-      amounts.push(e.amount)
     }
   }
   const earnback = Math.min(earnRaw, Math.max(0, deductions))
+  amounts.push(earnback)
   const balance = Math.max(0, start + pay + earnback - deductions)
 
-  let closedBalance: Cents | undefined
-  for (const e of live) {
-    if (e.type === 'week.closed' && e.kidId === kid.id && e.weekStart === weekStart) closedBalance = e.balance
-  }
+  const closedBalance = closeEvent?.balance
 
   const useCents = anyCents(amounts)
 

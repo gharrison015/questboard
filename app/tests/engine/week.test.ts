@@ -134,4 +134,32 @@ describe('weekState', () => {
     expect(ws.lostByDay['2026-11-02'].items[0].label).toBe('Deduction')
     expect(ws.useCents).toBe(true)
   })
+
+  it('latest verify or reject after the last check decides, in every mode', () => {
+    const d = '2026-11-05'
+    const mk = (type: 'chore.checked' | 'chore.verified' | 'chore.rejected', at: string) =>
+      ev({ type, kidId: nolan, choreId: TRASH, date: d }, at)
+    const pays = (mode: Family['verification'], tail: ('chore.verified' | 'chore.rejected')[]): boolean => {
+      const f = withMoney({}, mode)
+      const evs = [mk('chore.checked', '2026-11-05T09:00:00'), ...tail.map((t, i) => mk(t, `2026-11-05T10:0${i}:00`))]
+      return choreDayState(f, kidOf(f), kidOf(f).chores[3], d, evs, NOW).pays
+    }
+    expect(pays('kid-verify', ['chore.rejected', 'chore.verified'])).toBe(true)
+    expect(pays('kid-verify', ['chore.verified', 'chore.rejected'])).toBe(false)
+    expect(pays('kid-final', ['chore.rejected'])).toBe(false)
+    expect(pays('parent-approve', ['chore.rejected', 'chore.verified'])).toBe(true)
+    expect(pays('parent-approve', [])).toBe(false)
+  })
+
+  it('a verification after the close does not change a closed week', () => {
+    const f = withMoney({}, 'parent-approve')
+    const chk = ev({ type: 'chore.checked', kidId: nolan, choreId: TRASH, date: '2026-11-05' }, '2026-11-05T09:00:00')
+    const closed = ev({ type: 'week.closed', kidId: nolan, weekStart: WS, balance: 1000 }, '2026-11-08T00:00:01')
+    const ver = ev({ type: 'chore.verified', kidId: nolan, choreId: TRASH, date: '2026-11-05' }, '2026-11-09T09:00:00')
+    const ws = weekState(f, kidOf(f), [chk, closed, ver], WS, new Date(2026, 10, 10))
+    expect(ws.pay).toBe(0)
+    expect(ws.balance).toBe(1000)
+    const t = mathTerms(ws)
+    expect(t.start + t.plus - t.minus).toBe(ws.closedBalance)
+  })
 })
