@@ -1,9 +1,10 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { StoreProvider } from '../../src/state/store'
+import { StoreProvider, useActions, useStore, type Actions } from '../../src/state/store'
 import { AppShell } from '../../src/ui/shell/AppShell'
 import { InMemoryAdapter } from '../../src/storage/memory'
 import { hashPin } from '../../src/security/pin'
+import { act } from '@testing-library/react'
 import { makeFamily, makenna, nolan } from '../fixtures'
 
 async function mount(pin = '1234') {
@@ -56,10 +57,10 @@ describe('app shell', () => {
     const dialog = await screen.findByRole('dialog')
     expect(dialog).toHaveAttribute('aria-modal', 'true')
     const enter = screen.getByRole('button', { name: 'Enter' })
-    expect(enter).toBeDisabled()
+    expect(enter).toHaveAttribute('aria-disabled', 'true')
 
     for (const d of '9999') fireEvent.click(screen.getByRole('button', { name: d }))
-    expect(enter).toBeEnabled()
+    expect(enter).toHaveAttribute('aria-disabled', 'false')
     fireEvent.click(enter)
     await waitFor(() => expect(dialog).toHaveClass('shake'))
     expect(screen.queryByText(/Parent view \(coming/)).toBeNull()
@@ -79,5 +80,44 @@ describe('app shell', () => {
     await screen.findByRole('dialog')
     fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  })
+
+  it('applies two update calls fired in the same tick', async () => {
+    const adapter = new InMemoryAdapter()
+    await adapter.saveFamily(makeFamily())
+    let actions!: Actions
+    let kidChores = 0
+    function Probe() {
+      actions = useActions()
+      kidChores = useStore().family?.kids[0].chores.length ?? 0
+      return null
+    }
+    render(<StoreProvider adapter={adapter}><Probe /></StoreProvider>)
+    await waitFor(() => expect(actions).toBeDefined())
+    const before = kidChores
+    const chore = (label: string) => ({ label, icon: 'star', days: [1], pay: 0, active: true })
+    await act(async () => {
+      await Promise.all([
+        actions.update({ type: 'chore.add', kidId: nolan, chore: chore('One') }),
+        actions.update({ type: 'chore.add', kidId: nolan, chore: chore('Two') }),
+      ])
+    })
+    expect(kidChores).toBe(before + 2)
+    expect((await adapter.load()).family?.kids[0].chores).toHaveLength(before + 2)
+  })
+
+  it('never shows the parent view from public actions without unlocking', async () => {
+    const adapter = new InMemoryAdapter()
+    await adapter.saveFamily(makeFamily())
+    let actions!: Actions
+    function Probe() {
+      actions = useActions()
+      return null
+    }
+    render(<StoreProvider adapter={adapter}><Probe /><AppShell /></StoreProvider>)
+    await screen.findByRole('banner')
+    act(() => actions.enterParent())
+    expect(screen.queryByText(/Parent view \(coming/)).toBeNull()
+    expect(screen.getByRole('main')).toBeInTheDocument()
   })
 })

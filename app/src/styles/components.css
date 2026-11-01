@@ -77,7 +77,8 @@ body {
   outline: 3px solid var(--ink);
   outline-offset: 2px;
 }
-.qb-btn:disabled {
+.qb-btn:disabled,
+.qb-btn[aria-disabled="true"] {
   opacity: 0.45;
   cursor: not-allowed;
 }

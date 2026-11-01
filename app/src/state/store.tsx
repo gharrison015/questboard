@@ -9,7 +9,7 @@ import { detectMode, type Mode } from '../app/mode'
 import { resolveAppearance, type ResolvedAppearance } from '../app/appearance'
 import { useViewport } from '../app/useViewport'
 import { verifyPin } from '../security/pin'
-import { tryUnlock, type LockoutState } from '../security/session'
+import { sessionValid, tryUnlock, type LockoutState } from '../security/session'
 import { DEFAULT_DEVICE, EMPTY_LOCKOUT, type DeviceSettings, type StorageAdapter } from '../storage/adapter'
 import { storeReducer, type StoreState, type View } from './storeState'
 
@@ -28,10 +28,11 @@ export interface StoreValue {
 
 export interface Actions {
   append(events: QBEvent[]): Promise<void>
-  /** Unmatched ids in a family action (unknown kid, chore, routine) are no-ops. Limit breaches throw LimitError. */
+  /** Every action runs through one queue, so overlapping calls apply in order. Unmatched ids in a family action (unknown kid, chore, routine) are no-ops. Limit breaches throw LimitError. */
   update(action: FamilyAction): Promise<void>
   setKid(id: string): void
-  setView(view: View): void
+  /** Opens the parent view. A no-op unless the parent session is valid. Only the gate success path calls it. */
+  enterParent(): void
   setDevice(patch: Partial<DeviceSettings>): Promise<void>
   unlockParent(pin: string): Promise<'ok' | 'bad' | 'locked'>
   lockParent(): void
@@ -78,52 +79,70 @@ export function StoreProvider({ adapter, children }: { adapter: StorageAdapter; 
 
   useEffect(() => {
     const id = window.setInterval(() => commit({ now: new Date() }), TICK_MS)
-    return () => window.clearInterval(id)
+    const onVisible = (): void => {
+      if (document.visibilityState === 'visible') commit({ now: new Date() })
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      window.clearInterval(id)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
   }, [commit])
 
-  const actions = useMemo<Actions>(() => ({
-    async append(events) {
-      if (events.length === 0) return
-      await adapter.appendEvents(events)
-      commit({ events: [...ref.current.events, ...events] })
-    },
-    async update(action) {
-      const family = ref.current.family
-      if (!family) return
-      const next = applyFamilyAction(family, action)
-      await adapter.saveFamily(next)
-      commit({ family: next })
-    },
-    setKid: (id) => commit({ currentKidId: id }),
-    setView: (view) => commit({ view }),
-    async setDevice(patch) {
-      const next = { ...ref.current.device, ...patch }
-      await adapter.saveDevice(next)
-      commit({ device: next })
-    },
-    async unlockParent(pin) {
-      const { family } = ref.current
-      if (!family) return 'bad'
-      const at = Date.now()
-      const pinOk = await verifyPin(pin, family.pinSalt, family.pinHash)
-      const { state: next, result } = tryUnlock(pinOk, ref.current.lockout, at)
-      await adapter.saveLockout(next)
-      commit({ lockout: next, ...(result === 'ok' ? { parentUnlockedAt: at } : {}) })
-      return result
-    },
-    lockParent: () => commit({ parentUnlockedAt: null, view: 'kid' }),
-    async replaceAll(family, events) {
-      const { device, lockout } = ref.current
-      const closes = dueWeekCloses(family, events, new Date())
-      const all = [...events, ...closes]
-      await adapter.wipe()
-      await adapter.saveFamily(family)
-      await adapter.appendEvents(all)
-      await adapter.saveDevice(device)
-      await adapter.saveLockout(lockout)
-      commit({ family, events: all, currentKidId: null, view: 'kid' })
-    },
-  }), [adapter, commit])
+  const actions = useMemo<Actions>(() => {
+    // One promise chain: each action starts after the previous one finished, success or failure.
+    let chain: Promise<unknown> = Promise.resolve()
+    const enqueue = <T,>(fn: () => Promise<T>): Promise<T> => {
+      const run = chain.then(fn)
+      chain = run.then(() => undefined, () => undefined)
+      return run
+    }
+    return {
+      append: (events) => enqueue(async () => {
+        if (events.length === 0) return
+        await adapter.appendEvents(events)
+        commit({ events: [...ref.current.events, ...events] })
+      }),
+      update: (action) => enqueue(async () => {
+        const family = ref.current.family
+        if (!family) return
+        const next = applyFamilyAction(family, action)
+        await adapter.saveFamily(next)
+        commit({ family: next })
+      }),
+      setKid: (id) => commit({ currentKidId: id }),
+      enterParent: () => {
+        if (sessionValid(ref.current.parentUnlockedAt, Date.now())) commit({ view: 'parent' })
+      },
+      setDevice: (patch) => enqueue(async () => {
+        const next = { ...ref.current.device, ...patch }
+        await adapter.saveDevice(next)
+        commit({ device: next })
+      }),
+      unlockParent: (pin) => enqueue(async () => {
+        const { family } = ref.current
+        if (!family) return 'bad' as const
+        const at = Date.now()
+        const pinOk = await verifyPin(pin, family.pinSalt, family.pinHash)
+        const { state: next, result } = tryUnlock(pinOk, ref.current.lockout, at)
+        await adapter.saveLockout(next)
+        commit({ lockout: next, ...(result === 'ok' ? { parentUnlockedAt: at } : {}) })
+        return result
+      }),
+      lockParent: () => commit({ parentUnlockedAt: null, view: 'kid' }),
+      replaceAll: (family, events) => enqueue(async () => {
+        const { device, lockout } = ref.current
+        const closes = dueWeekCloses(family, events, new Date())
+        const all = [...events, ...closes]
+        await adapter.wipe()
+        await adapter.saveFamily(family)
+        await adapter.appendEvents(all)
+        await adapter.saveDevice(device)
+        await adapter.saveLockout(lockout)
+        commit({ family, events: all, currentKidId: null, view: 'kid' })
+      }),
+    }
+  }, [adapter, commit])
 
   const value = useMemo<StoreValue>(() => {
     const mode = detectMode({ ...viewport, override: state.device.modeOverride })

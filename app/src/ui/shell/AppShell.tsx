@@ -20,7 +20,7 @@ function wantsDemo(): boolean {
 
 function Shell() {
   const { family, mode, appearance, view, parentUnlockedAt, now } = useStore()
-  const { setKid, setView, replaceAll } = useActions()
+  const { setKid, lockParent, replaceAll } = useActions()
   const kid = useKid()
   const [gridOpen, setGridOpen] = useState(false)
   const seeded = useRef(false)
@@ -34,15 +34,15 @@ function Shell() {
 
   // Dev only: ?demo=1 on an empty install loads the demo family once.
   useEffect(() => {
-    if (family || seeded.current || !wantsDemo()) return
+    if (!import.meta.env.DEV || family || seeded.current || !wantsDemo()) return
     seeded.current = true
     void seedDemoFamily().then((s) => replaceAll(s.family, s.events))
   }, [family, replaceAll])
 
   // The parent session expires on the minute tick.
   useEffect(() => {
-    if (view === 'parent' && !sessionValid(parentUnlockedAt, now.getTime())) setView('kid')
-  }, [view, parentUnlockedAt, now, setView])
+    if (view === 'parent' && !sessionValid(parentUnlockedAt, now.getTime())) lockParent()
+  }, [view, parentUnlockedAt, now, lockParent])
 
   const step = (delta: number): void => {
     if (!kid) return
@@ -62,7 +62,7 @@ function Shell() {
       {rail ? null : <KidSwitcher gridOpen={gridOpen} onGridChange={setGridOpen} />}
       <div className="qb-body">
         {rail ? <KidRail /> : null}
-        {view === 'parent' ? (
+        {view === 'parent' && sessionValid(parentUnlockedAt, Date.now()) ? (
           <main className="qb-main"><ParentView /></main>
         ) : (
           <main className="qb-main" {...swipe}>

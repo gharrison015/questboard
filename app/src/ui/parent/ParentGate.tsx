@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useActions, useStore } from '../../state/store'
 import { isLocked } from '../../security/session'
 import { Button } from '../primitives/Button'
@@ -22,6 +22,7 @@ export function ParentGate({ open, onClose, onSuccess }: ParentGateProps) {
   const [shake, setShake] = useState(false)
   const [wrong, setWrong] = useState(false)
   const [busy, setBusy] = useState(false)
+  const wrap = useRef<HTMLDivElement>(null)
   const [clock, setClock] = useState(() => Date.now())
 
   useEffect(() => {
@@ -55,6 +56,8 @@ export function ParentGate({ open, onClose, onSuccess }: ParentGateProps) {
     setClock(Date.now())
     setShake(true)
     setWrong(result === 'bad')
+    // Keep focus inside the dialog so the trap and the hardware keyboard keep working.
+    wrap.current?.querySelector<HTMLElement>('.qb-key')?.focus()
   }
 
   const onKeyDown = (e: React.KeyboardEvent): void => {
@@ -66,7 +69,7 @@ export function ParentGate({ open, onClose, onSuccess }: ParentGateProps) {
   const dots = Math.max(MIN_DIGITS, pin.length)
   return (
     <Modal open={open} title="Parent PIN" onClose={onClose} className={shake ? 'qb-gate shake' : 'qb-gate'}>
-      <div onKeyDown={onKeyDown}>
+      <div ref={wrap} onKeyDown={onKeyDown}>
         <h2 className="qb-gate-title">Parent PIN</h2>
         <div className="qb-dots" role="img" aria-label={`${pin.length} digits entered`}>
           {Array.from({ length: dots }, (_, i) => (
@@ -79,7 +82,7 @@ export function ParentGate({ open, onClose, onSuccess }: ParentGateProps) {
         <Keypad onDigit={digit} onDelete={del} />
         <div className="qb-gate-actions">
           <Button variant="quiet" onClick={onClose}>Cancel</Button>
-          <Button disabled={pin.length < MIN_DIGITS || busy || locked} onClick={() => void submit()}>Enter</Button>
+          <Button aria-disabled={pin.length < MIN_DIGITS || busy || locked} onClick={() => void submit()}>Enter</Button>
         </div>
       </div>
     </Modal>

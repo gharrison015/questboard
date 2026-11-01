@@ -7,7 +7,7 @@ import { useSwipe } from './useSwipe'
 export function Header({ onPullDown }: { onPullDown?: () => void }) {
   const kid = useKid()
   const parent = useParent()
-  const { setView } = useActions()
+  const { enterParent } = useActions()
   const swipe = useSwipe({ onDown: onPullDown })
   return (
     <header className="qb-header" role="banner" {...swipe}>
@@ -17,7 +17,7 @@ export function Header({ onPullDown }: { onPullDown?: () => void }) {
         type="button"
         className="qb-iconbtn"
         aria-label="Parent view"
-        onClick={() => parent.require(() => setView('parent'))}
+        onClick={() => parent.require(() => enterParent())}
       >
         <Icon name="lock" />
       </button>
