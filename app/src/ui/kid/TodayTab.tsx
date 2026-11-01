@@ -3,7 +3,7 @@ import { dateKey, dayFull } from '../../engine/dates'
 import { formatCents } from '../../engine/money'
 import type { DateKey, Kid } from '../../engine/types'
 import { useWeek } from '../../state/selectors'
-import { EarnBackSlot } from '../earnback/EarnBackPanel'
+import { EarnBackPanel } from '../earnback/EarnBackPanel'
 import { SectionHead } from '../primitives/SectionHead'
 import { choresDue, routinesDue, Row, useDayToggles } from './choreRows'
 import { ChoreIcon } from './ChoreIcon'
@@ -65,7 +65,7 @@ export function TodayTab({ kid, onChecked }: { kid: Kid; onChecked?: () => void 
           </section>
         )
       })}
-      <EarnBackSlot kid={kid} />
+      <EarnBackPanel kid={kid} onHop={onChecked} />
     </div>
   )
 }
