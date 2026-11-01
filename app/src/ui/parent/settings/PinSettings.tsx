@@ -2,15 +2,17 @@ import { useId, useState } from 'react'
 import {
   hashPin, isValidPin, makeRecoveryCode, makeSalt, normalizeRecoveryCode, verifyPin,
 } from '../../../security/pin'
-import { useStore } from '../../../state/store'
+import { useActions, useStore } from '../../../state/store'
 import { Button } from '../../primitives/Button'
 import { Modal } from '../../primitives/Modal'
 import { useSave } from './fields'
 
+const LOCKED = 'Too many wrong tries. Wait a minute and try again.'
+
 interface PinFormProps {
   label: string
   /** Field shown first: the recovery code, or the current PIN. */
-  first: { name: string; secret: boolean }
+  first: { name: string; secret: boolean; autoComplete: string }
   action: string
   run(first: string, pin: string): Promise<string | null>
 }
@@ -37,28 +39,27 @@ function PinForm({ label, first, action, run }: PinFormProps) {
       })
       .finally(() => setBusy(false))
   }
-  const field = (name: string, value: string, set: (v: string) => void, secret: boolean, numeric = false) => (
+  const field = (name: string, value: string, set: (v: string) => void, secret: boolean, autoComplete: string) => (
     <div className="st-field">
       <label className="st-label" htmlFor={`${uid}-${name.replace(/\s/g, '')}`}>{name}</label>
       <input
         id={`${uid}-${name.replace(/\s/g, '')}`}
-        className={secret ? 'st-input st-secret' : 'st-input'}
-        type="text"
-        inputMode={numeric ? 'numeric' : undefined}
-        autoComplete="off"
-        maxLength={numeric ? 6 : undefined}
+        className="st-input"
+        type={secret ? 'password' : 'text'}
+        inputMode={secret ? 'numeric' : undefined}
+        autoComplete={autoComplete}
+        maxLength={secret ? 6 : undefined}
         value={value}
         onChange={(e) => { set(e.target.value); setError('') }}
-        onBlur={(e) => set(e.target.value)}
       />
     </div>
   )
   return (
     <form className="st-card" role="group" aria-label={label} onSubmit={submit}>
       <h4 className="pr-sub">{label}</h4>
-      {field(first.name, a, setA, first.secret)}
-      {field('New PIN', pin, setPin, true, true)}
-      {field('Confirm new PIN', again, setAgain, true, true)}
+      {field(first.name, a, setA, first.secret, first.autoComplete)}
+      {field('New PIN', pin, setPin, true, 'new-password')}
+      {field('Confirm new PIN', again, setAgain, true, 'new-password')}
       {error ? <p className="st-error" role="alert">{error}</p> : null}
       <Button type="submit" className="pr-dense" disabled={busy}>{action}</Button>
     </form>
@@ -67,13 +68,16 @@ function PinForm({ label, first, action, run }: PinFormProps) {
 
 export function PinSettings() {
   const { family } = useStore()
+  const { tryPin } = useActions()
   const save = useSave()
   const [newCode, setNewCode] = useState<string | null>(null)
   const [wrote, setWrote] = useState(false)
   if (!family) return null
 
   const change = async (current: string, pin: string): Promise<string | null> => {
-    if (!(await verifyPin(current, family.pinSalt, family.pinHash))) return 'That is not the current PIN.'
+    const r = await tryPin(() => verifyPin(current, family.pinSalt, family.pinHash))
+    if (r === 'locked') return LOCKED
+    if (r === 'bad') return 'That is not the current PIN.'
     // The salt stays, so the recovery code on file keeps working.
     const pinHash = await hashPin(pin, family.pinSalt)
     const ok = await save({ type: 'pin.set', pinHash, pinSalt: family.pinSalt, recoveryHash: family.recoveryHash }, 'PIN changed')
@@ -81,8 +85,12 @@ export function PinSettings() {
   }
 
   const reset = async (code: string, pin: string): Promise<string | null> => {
-    const given = await hashPin(normalizeRecoveryCode(code), family.pinSalt)
-    if (!family.recoveryHash || given !== family.recoveryHash) return 'That recovery code does not match.'
+    const r = await tryPin(async () => {
+      const given = await hashPin(normalizeRecoveryCode(code), family.pinSalt)
+      return family.recoveryHash !== '' && given === family.recoveryHash
+    })
+    if (r === 'locked') return LOCKED
+    if (r === 'bad') return 'That recovery code does not match.'
     const salt = makeSalt()
     const fresh = makeRecoveryCode()
     const ok = await save({
@@ -99,8 +107,8 @@ export function PinSettings() {
 
   return (
     <div className="st-body">
-      <PinForm label="Change PIN" first={{ name: 'Current PIN', secret: true }} action="Change PIN" run={change} />
-      <PinForm label="Reset PIN with recovery code" first={{ name: 'Recovery code', secret: false }} action="Reset PIN" run={reset} />
+      <PinForm label="Change PIN" first={{ name: 'Current PIN', secret: true, autoComplete: 'current-password' }} action="Change PIN" run={change} />
+      <PinForm label="Reset PIN with recovery code" first={{ name: 'Recovery code', secret: false, autoComplete: 'off' }} action="Reset PIN" run={reset} />
       <p className="st-hint">The recovery code is the only way back in if the PIN is forgotten. If the code is lost too, the only choice is to erase everything and start over.</p>
 
       <Modal open={newCode !== null} title="New recovery code" onClose={() => { /* must be acknowledged */ }}>

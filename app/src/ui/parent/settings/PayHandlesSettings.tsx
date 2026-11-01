@@ -5,9 +5,9 @@ import { TextField, useSave } from './fields'
 const CLEAN = (v: string): string => v.replace(/\s+/g, '').replace(/^[@$]+/, '')
 
 const ROWS: { key: keyof PayHandles; name: string; hint: string; link: (h: string) => string }[] = [
-  { key: 'paypal', name: 'PayPal.me', hint: 'The part after paypal.me/', link: (h) => `paypal.me/${h}` },
-  { key: 'cashapp', name: 'Cash App', hint: 'Your cashtag, without the $', link: (h) => `cash.app/$${h}` },
-  { key: 'venmo', name: 'Venmo', hint: 'Your username, without the @', link: (h) => `venmo.com/${h}` },
+  { key: 'paypal', name: 'PayPal.me', hint: 'The part after paypal.me/', link: (h) => `paypal.me/${encodeURIComponent(h)}` },
+  { key: 'cashapp', name: 'Cash App', hint: 'Your cashtag, without the $', link: (h) => `cash.app/$${encodeURIComponent(h)}` },
+  { key: 'venmo', name: 'Venmo', hint: 'Your username, without the @', link: (h) => `venmo.com/${encodeURIComponent(h)}` },
 ]
 
 export function PayHandlesSettings() {

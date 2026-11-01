@@ -24,7 +24,7 @@ function ChoreRow({ kidId, chore }: { kidId: string; chore: Chore }) {
           <input type="checkbox" checked={chore.active} aria-label={`Active: ${chore.label}`} onChange={(e) => patch({ active: e.target.checked })} />
           <span>Active</span>
         </label>
-        <TextField label={`Name of ${chore.label}`} hideLabel value={chore.label} onCommit={(v) => { if (v.trim()) patch({ label: v.trim() }) }} />
+        <TextField label={`Name of ${chore.label}`} hideLabel required value={chore.label} onCommit={(v) => { if (v.trim()) patch({ label: v.trim() }) }} />
         <Button className="pr-dense" variant="quiet" aria-expanded={picking} aria-label={`Icon for ${chore.label}`} onClick={() => setPicking(!picking)}>
           <ChoreIcon name={chore.icon} size={24} />
         </Button>

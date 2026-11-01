@@ -4,7 +4,7 @@ import { StoreProvider } from '../../src/state/store'
 import { AppShell } from '../../src/ui/shell/AppShell'
 import { InMemoryAdapter } from '../../src/storage/memory'
 import { hashPin, verifyPin } from '../../src/security/pin'
-import { parseImport } from '../../src/storage/exportImport'
+import { exportFamily, parseImport } from '../../src/storage/exportImport'
 import { makeFamily, nolan } from '../fixtures'
 import type { Chore, Family } from '../../src/engine/types'
 
@@ -33,6 +33,11 @@ async function mount(opts: { family?: Partial<Family> } = {}) {
 }
 
 const family = async (a: InMemoryAdapter): Promise<Family> => (await a.load()).family as Family
+const fill = (label: string, value: string, scope: HTMLElement = document.body): void => {
+  const input = within(scope).getByLabelText(label)
+  fireEvent.change(input, { target: { value } })
+  fireEvent.blur(input)
+}
 const typeInto = (name: string | RegExp, value: string, scope: HTMLElement = document.body): void => {
   const input = within(scope).getByRole('textbox', { name })
   fireEvent.change(input, { target: { value } })
@@ -113,9 +118,9 @@ describe('settings', () => {
   it('resets the PIN with the right recovery code and shows a new code', async () => {
     const { adapter } = await mount()
     const group = screen.getByRole('group', { name: 'Reset PIN with recovery code' })
-    typeInto('Recovery code', 'abcd-efgh', group)
-    typeInto('New PIN', '5678', group)
-    typeInto('Confirm new PIN', '5678', group)
+    fill('Recovery code', 'abcd-efgh', group)
+    fill('New PIN', '5678', group)
+    fill('Confirm new PIN', '5678', group)
     fireEvent.click(within(group).getByRole('button', { name: 'Reset PIN' }))
     const dlg = await screen.findByRole('dialog', { name: 'New recovery code' })
     const done = within(dlg).getByRole('button', { name: 'Done' })
@@ -131,9 +136,9 @@ describe('settings', () => {
     const { adapter } = await mount()
     const before = await family(adapter)
     const group = screen.getByRole('group', { name: 'Reset PIN with recovery code' })
-    typeInto('Recovery code', 'WRONG-CODE', group)
-    typeInto('New PIN', '5678', group)
-    typeInto('Confirm new PIN', '5678', group)
+    fill('Recovery code', 'WRONG-CODE', group)
+    fill('New PIN', '5678', group)
+    fill('Confirm new PIN', '5678', group)
     fireEvent.click(within(group).getByRole('button', { name: 'Reset PIN' }))
     expect(await within(group).findByText('That recovery code does not match.')).toBeInTheDocument()
     expect((await family(adapter)).pinHash).toBe(before.pinHash)
@@ -166,5 +171,182 @@ describe('settings', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'Remove photo' }))
     await waitFor(async () => expect((await family(adapter)).kids.find((k) => k.id === nolan)!.photo).toBeUndefined())
+  })
+
+  it('Change PIN saves a new hash with the same salt when the current PIN is right', async () => {
+    const { adapter } = await mount()
+    const group = screen.getByRole('group', { name: 'Change PIN' })
+    fill('Current PIN', '1234', group)
+    fill('New PIN', '4321', group)
+    fill('Confirm new PIN', '4321', group)
+    fireEvent.click(within(group).getByRole('button', { name: 'Change PIN' }))
+    await waitFor(async () => expect((await family(adapter)).pinHash).toBe(await hashPin('4321', 'salt')))
+    const f = await family(adapter)
+    expect(f.pinSalt).toBe('salt')
+    expect(f.recoveryHash).toBe(await hashPin('ABCDEFGH', 'salt'))
+  })
+
+  it('Change PIN rejects a wrong current PIN and saves nothing', async () => {
+    const { adapter } = await mount()
+    const before = await family(adapter)
+    const saveSpy = vi.spyOn(adapter, 'saveFamily')
+    const group = screen.getByRole('group', { name: 'Change PIN' })
+    fill('Current PIN', '9999', group)
+    fill('New PIN', '4321', group)
+    fill('Confirm new PIN', '4321', group)
+    fireEvent.click(within(group).getByRole('button', { name: 'Change PIN' }))
+    expect(await within(group).findByText('That is not the current PIN.')).toBeInTheDocument()
+    expect(saveSpy).not.toHaveBeenCalled()
+    expect((await family(adapter)).pinHash).toBe(before.pinHash)
+  })
+
+  it('uses real password fields for PINs and a text field for the recovery code', async () => {
+    await mount()
+    const group = screen.getByRole('group', { name: 'Reset PIN with recovery code' })
+    expect(within(group).getByLabelText('New PIN')).toHaveAttribute('type', 'password')
+    expect(within(group).getByLabelText('New PIN')).toHaveAttribute('inputmode', 'numeric')
+    expect(within(group).getByLabelText('New PIN')).toHaveAttribute('maxlength', '6')
+    expect(within(group).getByLabelText('Recovery code')).toHaveAttribute('type', 'text')
+    expect(within(screen.getByRole('group', { name: 'Change PIN' })).getByLabelText('Current PIN')).toHaveAttribute('autocomplete', 'current-password')
+  })
+
+  it('locks Change PIN after five wrong current PINs', async () => {
+    const { adapter } = await mount()
+    const group = screen.getByRole('group', { name: 'Change PIN' })
+    fill('New PIN', '4321', group)
+    fill('Confirm new PIN', '4321', group)
+    for (let i = 0; i < 5; i += 1) {
+      fill('Current PIN', '9999', group)
+      fireEvent.click(within(group).getByRole('button', { name: 'Change PIN' }))
+      await waitFor(() => expect(within(group).getByRole('alert')).toBeInTheDocument())
+      fireEvent.change(within(group).getByLabelText('Current PIN'), { target: { value: '' } })
+    }
+    fill('Current PIN', '1234', group)
+    fireEvent.click(within(group).getByRole('button', { name: 'Change PIN' }))
+    expect(await within(group).findByText(/Too many wrong tries/)).toBeInTheDocument()
+    expect((await adapter.load()).lockout.lockedUntil).not.toBeNull()
+  })
+
+  it('erases everything only after typing ERASE, then shows setup', async () => {
+    const { adapter } = await mount()
+    fireEvent.click(screen.getByRole('button', { name: 'Erase all data' }))
+    const dlg = await screen.findByRole('dialog', { name: 'Erase all data' })
+    const go = within(dlg).getByRole('button', { name: 'Erase everything' })
+    expect(go).toBeDisabled()
+    fireEvent.change(within(dlg).getByLabelText('Type ERASE'), { target: { value: 'erase' } })
+    expect(go).toBeDisabled()
+    fireEvent.change(within(dlg).getByLabelText('Type ERASE'), { target: { value: 'ERASE' } })
+    expect(go).toBeEnabled()
+    fireEvent.click(go)
+    expect(await screen.findByText('Setup coming in Task 16')).toBeInTheDocument()
+    expect((await adapter.load()).family).toBeNull()
+  })
+
+  it('imports a valid export after a confirm that shows the name and counts', async () => {
+    const { adapter } = await mount()
+    const incoming = makeFamily({ id: 'fam-2', name: 'Imported crew', recoveryHash: 'abc' })
+    const json = exportFamily(incoming, [])
+    const file = new File([json], 'x.json', { type: 'application/json' })
+    fireEvent.change(screen.getByLabelText('Import file'), { target: { files: [file] } })
+    const dlg = await screen.findByRole('dialog', { name: 'Import this file' })
+    expect(dlg).toHaveTextContent('Family: Imported crew')
+    expect(dlg).toHaveTextContent('Kids: 2')
+    expect(dlg).toHaveTextContent('Events: 0')
+    expect((await family(adapter)).name).toBe('Test family')
+    fireEvent.click(within(dlg).getByRole('button', { name: 'Replace everything' }))
+    await waitFor(async () => expect((await family(adapter)).name).toBe('Imported crew'))
+  })
+
+  it('shows an error for an import file that is incomplete', async () => {
+    const { adapter } = await mount()
+    const bad = JSON.parse(exportFamily(makeFamily({ recoveryHash: 'abc' }), [])) as { family: Record<string, unknown> }
+    delete bad.family.entitlements
+    fireEvent.change(screen.getByLabelText('Import file'), { target: { files: [new File([JSON.stringify(bad)], 'x.json')] } })
+    expect(await screen.findByText(/"entitlements" is missing/)).toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: 'Import this file' })).toBeNull()
+    expect((await family(adapter)).name).toBe('Test family')
+  })
+
+  it('unlocks unlimited chores after the PIN gate', async () => {
+    const chores: Chore[] = Array.from({ length: 10 }, (_, i) => ({
+      id: `c${i}`, label: `Chore ${i}`, icon: 'star', days: [0, 1, 2, 3, 4, 5, 6], pay: 0, active: true,
+    }))
+    const base = makeFamily()
+    const { adapter } = await mount({ family: { kids: base.kids.map((k) => (k.id === nolan ? { ...k, chores } : k)) } })
+    vi.setSystemTime(new Date(NOW.getTime() + 6 * 60 * 1000))
+    fireEvent.click(screen.getByRole('button', { name: /Unlock unlimited chores/ }))
+    await screen.findByRole('dialog')
+    expect((await family(adapter)).entitlements).toHaveLength(0)
+    for (const d of '1234') fireEvent.click(screen.getByRole('button', { name: d }))
+    fireEvent.click(screen.getByRole('button', { name: 'Enter' }))
+    await waitFor(async () => expect((await family(adapter)).entitlements.map((e) => e.key)).toContain('chores-unlimited'))
+  })
+
+  it('unlocks an extra kid slot as kid-slot:3 at the kid limit', async () => {
+    const { adapter } = await mount()
+    fireEvent.click(screen.getByRole('button', { name: /Unlock extra profile/ }))
+    await waitFor(async () => expect((await family(adapter)).entitlements.map((e) => e.key)).toContain('kid-slot:3'))
+  })
+
+  it('resizes a chosen photo to a 256px JPEG data URL', async () => {
+    const { adapter } = await mount()
+    const drawImage = vi.fn()
+    const toDataURL = vi.fn(() => 'data:image/jpeg;base64,STUB')
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({ drawImage } as unknown as CanvasRenderingContext2D)
+    vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockImplementation(toDataURL)
+    Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: () => 'blob:p' })
+    Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: () => undefined })
+    vi.stubGlobal('Image', class {
+      onload: (() => void) | null = null
+      onerror: (() => void) | null = null
+      naturalWidth = 400
+      naturalHeight = 300
+      set src(_v: string) { queueMicrotask(() => this.onload?.()) }
+    })
+    try {
+      const file = new File(['x'], 'p.png', { type: 'image/png' })
+      fireEvent.change(screen.getByLabelText('Photo for Nolan'), { target: { files: [file] } })
+      await waitFor(async () => expect((await family(adapter)).kids.find((k) => k.id === nolan)!.photo).toBe('data:image/jpeg;base64,STUB'))
+      expect(toDataURL).toHaveBeenCalledWith('image/jpeg', 0.85)
+      expect(drawImage).toHaveBeenCalledWith(expect.anything(), 50, 0, 300, 300, 0, 0, 256, 256)
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('keeps the previous emoji when the new one is empty', async () => {
+    const { adapter } = await mount()
+    const box = screen.getByLabelText('Emoji for Yelling')
+    fireEvent.change(box, { target: { value: '' } })
+    fireEvent.blur(box)
+    expect(box).toHaveValue('1')
+    expect((await family(adapter)).reasons[0].emoji).toBe('1')
+  })
+})
+
+describe('parseImport validation', () => {
+  const base = (): { family: Record<string, unknown> } => JSON.parse(exportFamily(makeFamily({ recoveryHash: 'abc' }), []))
+  it('names a missing entitlements list', () => {
+    const d = base()
+    delete d.family.entitlements
+    const r = parseImport(JSON.stringify(d))
+    expect('error' in r && r.error).toContain('"entitlements" is missing')
+  })
+  it('rejects an unknown verification mode', () => {
+    const d = base()
+    d.family.verification = 'whenever'
+    const r = parseImport(JSON.stringify(d))
+    expect('error' in r && r.error).toContain('verification')
+  })
+  it('rejects a kid without chores and a bad week start day', () => {
+    const d = base()
+    ;(d.family.kids as Record<string, unknown>[])[0].chores = 'no'
+    expect('error' in parseImport(JSON.stringify(d))).toBe(true)
+    const e = base()
+    ;(e.family.money as Record<string, unknown>).weekStartDay = 9
+    expect('error' in parseImport(JSON.stringify(e))).toBe(true)
+  })
+  it('accepts a complete export', () => {
+    expect('error' in parseImport(JSON.stringify(base()))).toBe(false)
   })
 })

@@ -35,7 +35,7 @@ export function KidRow({ kid, index, count, onMove }: KidRowProps) {
     <li className="st-card" aria-label={kid.name}>
       <div className="st-row st-row-wrap">
         {kid.photo ? <img className="st-photo" src={kid.photo} alt="" width={48} height={48} /> : null}
-        <TextField label={`Name of ${kid.name}`} hideLabel value={kid.name} onCommit={(v) => { if (v.trim()) patch({ name: v.trim() }) }} />
+        <TextField label={`Name of ${kid.name}`} hideLabel required value={kid.name} onCommit={(v) => { if (v.trim()) patch({ name: v.trim() }) }} />
         <div className="st-field">
           <label htmlFor={`grade-${kid.id}`} className="st-sr">{`Grade for ${kid.name}`}</label>
           <select id={`grade-${kid.id}`} className="st-input" value={kid.grade} onChange={(e) => patch({ grade: e.target.value as Grade })}>

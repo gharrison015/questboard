@@ -55,12 +55,11 @@ export function KidsEditor() {
   const archived = family.kids.filter((k) => k.archived).sort((a, b) => a.order - b.order)
   const limit = kidLimit(family)
   const atLimit = Number.isFinite(limit) && kids.length >= limit
-  const slots = family.entitlements.filter((e) => e.key.startsWith('kid-slot:')).length
   const price = formatCents(PRICES.extraKid)
 
   const unlock = (): void => {
     require(() => {
-      update({ type: 'entitlement.grant', key: kidSlotKey(slots + 1) })
+      update({ type: 'entitlement.grant', key: kidSlotKey(kids.length + 1) })
         .then(() => toast.show('Extra profile unlocked'))
         .catch(() => toast.show('Could not save that. Try again.'))
     })

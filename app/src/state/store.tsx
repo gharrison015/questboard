@@ -9,7 +9,7 @@ import { detectMode, type Mode } from '../app/mode'
 import { resolveAppearance, type ResolvedAppearance } from '../app/appearance'
 import { useViewport } from '../app/useViewport'
 import { verifyPin } from '../security/pin'
-import { sessionValid, tryUnlock, type LockoutState } from '../security/session'
+import { isLocked, sessionValid, tryUnlock, type LockoutState } from '../security/session'
 import { DEFAULT_DEVICE, EMPTY_LOCKOUT, type DeviceSettings, type StorageAdapter } from '../storage/adapter'
 import { storeReducer, type StoreState, type View } from './storeState'
 
@@ -36,6 +36,8 @@ export interface Actions {
   setDevice(patch: Partial<DeviceSettings>): Promise<void>
   unlockParent(pin: string): Promise<'ok' | 'bad' | 'locked'>
   lockParent(): void
+  /** Counts one PIN-style attempt against the shared lockout. Five misses lock for 60 seconds. Does not open the parent session. */
+  tryPin(check: () => Promise<boolean>): Promise<'ok' | 'bad' | 'locked'>
   replaceAll(family: Family, events: QBEvent[]): Promise<void>
   /** Wipes storage and returns to the empty install, which shows the setup wizard. */
   eraseAll(): Promise<void>
@@ -129,6 +131,14 @@ export function StoreProvider({ adapter, children }: { adapter: StorageAdapter; 
         const { state: next, result } = tryUnlock(pinOk, ref.current.lockout, at)
         await adapter.saveLockout(next)
         commit({ lockout: next, ...(result === 'ok' ? { parentUnlockedAt: at } : {}) })
+        return result
+      }),
+      tryPin: (check) => enqueue(async () => {
+        const at = Date.now()
+        if (isLocked(ref.current.lockout, at)) return 'locked' as const
+        const { state: next, result } = tryUnlock(await check(), ref.current.lockout, at)
+        await adapter.saveLockout(next)
+        commit({ lockout: next })
         return result
       }),
       lockParent: () => commit({ parentUnlockedAt: null, view: 'kid' }),

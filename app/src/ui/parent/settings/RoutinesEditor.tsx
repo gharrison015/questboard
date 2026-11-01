@@ -18,13 +18,14 @@ function RoutineCard({ routine }: { routine: Routine }) {
 
   return (
     <li className="st-card" aria-label={routine.name}>
-      <TextField label="Routine name" value={routine.name} onCommit={(v) => { if (v.trim()) patch({ name: v.trim() }) }} />
+      <TextField label="Routine name" required value={routine.name} onCommit={(v) => { if (v.trim()) patch({ name: v.trim() }) }} />
       <ol className="st-rows">
         {routine.steps.map((s, i) => (
           <li key={s.id} className="st-row">
             <TextField
               label={`Step ${i + 1} of ${routine.name}`}
               hideLabel
+              required
               value={s.label}
               onCommit={(v) => { if (v.trim()) setSteps(routine.steps.map((x) => (x.id === s.id ? { ...x, label: v.trim() } : x))) }}
             />

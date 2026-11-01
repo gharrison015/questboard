@@ -1,4 +1,4 @@
-import { useId, useRef, useState, type ReactNode } from 'react'
+import { useId, useRef, useState } from 'react'
 import { LimitError, type FamilyAction } from '../../../engine/reducer'
 import { formatCents, parseDollars } from '../../../engine/money'
 import { useActions } from '../../../state/store'
@@ -98,15 +98,18 @@ interface TextFieldProps {
   placeholder?: string
   /** Applied to the typed text before it is compared and saved. */
   normalize?(v: string): string
+  /** An empty entry is refused and the previous value comes back. */
+  required?: boolean
 }
 
 /** Text box that saves on blur. It remounts when the stored value changes, so outside edits show up. */
-export function TextField({ label, value, onCommit, hideLabel = false, maxChars, className, placeholder, normalize }: TextFieldProps) {
+export function TextField({ label, value, onCommit, hideLabel = false, maxChars, className, placeholder, normalize, required = false }: TextFieldProps) {
   const id = useId()
   const onBlur = (e: React.FocusEvent<HTMLInputElement>): void => {
     let v = e.currentTarget.value
     if (maxChars) v = Array.from(v).slice(0, maxChars).join('')
     if (normalize) v = normalize(v)
+    if (required && v.trim() === '') { e.currentTarget.value = value; return }
     e.currentTarget.value = v
     if (v !== value) onCommit(v)
   }
@@ -186,10 +189,6 @@ export function MoveButtons({ index, count, onMove, what }: { index: number; cou
       <Button className="pr-dense" variant="quiet" aria-label={`Move ${what} down`} disabled={index === count - 1} onClick={() => onMove(1)}>Down</Button>
     </span>
   )
-}
-
-export function Sub({ children }: { children: ReactNode }) {
-  return <p className="st-hint">{children}</p>
 }
 
 /** Moves item at index by delta, returning a new array. */

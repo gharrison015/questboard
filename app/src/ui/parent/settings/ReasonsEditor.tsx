@@ -18,8 +18,8 @@ export function ReasonsEditor() {
       <ul className="st-rows">
         {list.map((r, i) => (
           <li key={r.id} className="st-row st-row-wrap">
-            <TextField label={`Emoji for ${r.label}`} hideLabel value={r.emoji} maxChars={2} className="st-emoji" onCommit={(v) => edit(r.id, { emoji: v })} />
-            <TextField label={`Reason ${i + 1} name`} hideLabel value={r.label} onCommit={(v) => { if (v.trim()) edit(r.id, { label: v.trim() }) }} />
+            <TextField label={`Emoji for ${r.label}`} hideLabel value={r.emoji} maxChars={2} required className="st-emoji" onCommit={(v) => edit(r.id, { emoji: v })} />
+            <TextField label={`Reason ${i + 1} name`} hideLabel required value={r.label} onCommit={(v) => { if (v.trim()) edit(r.id, { label: v.trim() }) }} />
             <MoneyInput
               label={`Amount for ${r.label}`}
               hideLabel
