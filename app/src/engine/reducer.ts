@@ -12,10 +12,13 @@ export class LimitError extends Error {
   }
 }
 
+export type KidPatch = Partial<Omit<Kid, 'id' | 'chores' | 'archived' | 'order'>>
+
 export type FamilyAction =
   | { type: 'kid.add'; kid: Omit<Kid, 'id' | 'order'> }
-  | { type: 'kid.update'; id: string; patch: Partial<Kid> }
+  | { type: 'kid.update'; id: string; patch: KidPatch }
   | { type: 'kid.archive'; id: string }
+  | { type: 'kid.unarchive'; id: string }
   | { type: 'kid.reorder'; ids: string[] }
   | { type: 'chore.add'; kidId: string; chore: Omit<Chore, 'id'> }
   | { type: 'chore.update'; kidId: string; id: string; patch: Partial<Chore> }
@@ -34,7 +37,7 @@ export type FamilyAction =
 const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6]
 
 function routine(name: string, labels: string[]): Routine {
-  return { id: newId(), name, days: ALL_DAYS, steps: labels.map((label) => ({ id: newId(), label })) }
+  return { id: newId(), name, days: [...ALL_DAYS], steps: labels.map((label) => ({ id: newId(), label })) }
 }
 
 export function newFamily(name: string): Family {
@@ -82,12 +85,24 @@ export function applyFamilyAction(f: Family, a: FamilyAction): Family {
     }
     case 'kid.update': {
       if (a.patch.theme !== undefined && !ownsTheme(f, a.patch.theme)) throw new LimitError('theme')
-      return mapKid(f, a.id, (k) => ({ ...k, ...a.patch, id: k.id }))
+      return mapKid(f, a.id, (k) => {
+        const { id: _i, chores: _c, archived: _a, order: _o, ...safe } = a.patch as Partial<Kid>
+        return { ...k, ...safe }
+      })
     }
     case 'kid.archive':
       return mapKid(f, a.id, (k) => ({ ...k, archived: true }))
-    case 'kid.reorder':
-      return { ...f, kids: f.kids.map((k) => ({ ...k, order: a.ids.indexOf(k.id) >= 0 ? a.ids.indexOf(k.id) : k.order })) }
+    case 'kid.unarchive': {
+      if (f.kids.filter((k) => !k.archived).length >= kidLimit(f)) throw new LimitError('kids')
+      return mapKid(f, a.id, (k) => ({ ...k, archived: false }))
+    }
+    case 'kid.reorder': {
+      const known = new Set(f.kids.map((k) => k.id))
+      const listed = a.ids.filter((id, i) => known.has(id) && a.ids.indexOf(id) === i)
+      const rest = [...f.kids].sort((x, y) => x.order - y.order).map((k) => k.id).filter((id) => !listed.includes(id))
+      const seq = [...listed, ...rest]
+      return { ...f, kids: f.kids.map((k) => ({ ...k, order: seq.indexOf(k.id) })) }
+    }
     case 'chore.add':
       return mapKid(f, a.kidId, (k) => {
         if (a.chore.active && activeCount(k.chores) >= choreLimit(f, k.id)) throw new LimitError('chores')

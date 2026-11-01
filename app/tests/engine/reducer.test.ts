@@ -44,6 +44,34 @@ describe('kids', () => {
     expect(applyFamilyAction(p, { type: 'kid.update', id: nolan, patch: { theme: 'space' } }).kids[0].theme).toBe('space')
   })
 
+  it('kid.update ignores id, chores, archived and order at runtime', () => {
+    const f = makeFamily()
+    const bad = { id: 'x', chores: [], archived: true, order: 9, name: 'Z' } as never
+    const k = applyFamilyAction(f, { type: 'kid.update', id: nolan, patch: bad }).kids[0]
+    expect(k.id).toBe(nolan)
+    expect(k.chores).toHaveLength(5)
+    expect(k.archived).toBeUndefined()
+    expect(k.order).toBe(0)
+    expect(k.name).toBe('Z')
+  })
+
+  it('kid.unarchive respects the kid limit', () => {
+    let f = applyFamilyAction(makeFamily(), { type: 'kid.archive', id: makenna })
+    f = applyFamilyAction(f, { type: 'kid.add', kid: newKid('C') })
+    expect(() => applyFamilyAction(f, { type: 'kid.unarchive', id: makenna })).toThrow(LimitError)
+    const g = applyFamilyAction(grant(f, 'kid-slot:3'), { type: 'kid.unarchive', id: makenna })
+    expect(g.kids.find((k) => k.id === makenna)?.archived).toBe(false)
+  })
+
+  it('reorder keeps unlisted (archived) kids after listed ones, ignores bad ids', () => {
+    let f = applyFamilyAction(makeFamily(), { type: 'kid.archive', id: nolan })
+    f = applyFamilyAction(f, { type: 'kid.add', kid: newKid('C') })
+    const c = f.kids[2].id
+    const g = applyFamilyAction(f, { type: 'kid.reorder', ids: [c, 'nope', c, makenna] })
+    const ord = (id: string) => g.kids.find((k) => k.id === id)?.order
+    expect([ord(c), ord(makenna), ord(nolan)]).toEqual([0, 1, 2])
+  })
+
   it('reorder sets order by position', () => {
     const f = applyFamilyAction(makeFamily(), { type: 'kid.reorder', ids: [makenna, nolan] })
     expect(f.kids.find((k) => k.id === makenna)?.order).toBe(0)
@@ -117,7 +145,15 @@ describe('newFamily and entitlements', () => {
     expect(f.reasons.map((r) => r.label)).toEqual(['Not listening', 'Mean to a sibling', 'Yelling', "Didn't share", 'Tantrum', "Wouldn't get ready"])
     expect(f.routines.map((r) => r.name)).toEqual(['Morning', 'Bedtime', 'Nighttime'])
     expect(f.routines[2].steps.map((s) => s.label)).toEqual(['Read a book', 'Lights out'])
-    expect(f.money.startAmount).toBe(1000)
+    expect(f.money).toEqual({
+      startAmount: 1000, deductionDefault: 50, chorePayDefault: 100, weekStartDay: 0,
+      floorAtZero: true, earnBackEnabled: true, earnBackPerCorrect: 100,
+    })
+    expect(f.reasons).toHaveLength(6)
+    expect(f.reasons.every((r) => r.id && r.emoji)).toBe(true)
+    expect(f.routines[0].steps.map((s) => s.label)).toEqual(['Brush teeth', 'Get dressed', 'Eat breakfast'])
+    expect(f.routines[1].steps.map((s) => s.label)).toEqual(['Bath', 'PJs on', 'Brush teeth'])
+    expect(f.routines[0].days).not.toBe(f.routines[1].days)
     expect(f.verification).toBe('kid-verify')
     expect(f.appearance).toBe('bright')
     expect(f.kids).toEqual([])
