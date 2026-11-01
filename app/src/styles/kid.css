@@ -53,42 +53,50 @@
   100% { transform: translateY(0) scale(1, 1); }
 }
 
-/* Hero, compact: buddy left, numbers right */
+/* Hero, phone and portrait: one short band so the chores start high on the screen.
+   buddy | balance and math | jars stacked down the right, progress bar full width below.
+   The kid's name is already in the header and the switcher, so it is kept for screen readers only. */
 .kb-hero {
   flex: none;
-  display: flex;
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr) auto;
+  grid-template-areas:
+    "buddy bal  jars"
+    "buddy math jars"
+    "bar   bar  bar";
   align-items: center;
-  gap: 12px;
+  column-gap: 12px;
+  row-gap: 6px;
   padding-top: 4px;
 }
 .kb-buddy-wrap {
+  grid-area: buddy;
   position: relative;
   flex: none;
-  width: 112px;
-  height: 112px;
+  width: 84px;
+  height: 84px;
 }
 .kb-photo {
   position: absolute;
   right: -4px;
   bottom: -2px;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   object-fit: cover;
   border: 3px solid var(--card);
   box-shadow: var(--shadow);
 }
 .kb-hero-main {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  display: contents;
 }
 .kb-who {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 .kb-name {
   font-size: 1.25rem;
@@ -99,6 +107,8 @@
   font-size: 0.875rem;
 }
 .kb-balance {
+  grid-area: bal;
+  align-self: end;
   margin: 0;
   font-family: var(--font-display);
   font-weight: 700;
@@ -107,6 +117,7 @@
   color: var(--accent);
 }
 .kb-bar {
+  grid-area: bar;
   height: 10px;
   border-radius: 999px;
   background: var(--card-2);
@@ -119,7 +130,9 @@
   transition: width var(--dur) ease;
 }
 .kb-math {
-  margin-top: 2px;
+  grid-area: math;
+  align-self: start;
+  min-width: 0;
 }
 .kb-math-eq {
   margin: 0;
@@ -132,18 +145,20 @@
   font-size: 0.875rem;
 }
 .kb-jars {
+  grid-area: jars;
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: stretch;
   gap: 6px;
-  margin: 4px 0 0;
+  margin: 0;
   padding: 0;
   list-style: none;
 }
 .kb-jarchip {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 8px;
+  padding: 2px 10px;
   border-radius: 999px;
   background: var(--card);
   border: 2px solid currentColor;
@@ -151,6 +166,8 @@
   font-weight: 700;
 }
 .kb-jarchip b {
+  margin-left: auto;
+  padding-left: 6px;
   font-weight: 800;
 }
 .kb-jar-save { color: var(--save); }
@@ -160,6 +177,16 @@
 @container kb (max-width: 399px) {
   .kb-jarchip .qb-icon { display: none; }
   .kb-jars { gap: 4px; }
+  .kb-balance { font-size: 2.25rem; }
+}
+@container kb (max-width: 359px) {
+  .kb-hero {
+    grid-template-areas:
+      "buddy bal  jars"
+      "math  math math"
+      "bar   bar  bar";
+  }
+  .kb-balance { align-self: center; }
 }
 
 /* Right pane: tab bar + scrolling panel. Phone: bar at the bottom. */
@@ -366,6 +393,7 @@
     }
     .kb-hero {
       flex: 0 0 38%;
+      display: flex;
       flex-direction: column;
       justify-content: center;
       text-align: center;
@@ -380,9 +408,30 @@
       aspect-ratio: 1;
     }
     .kb-hero-main {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
       align-items: center;
       width: 100%;
     }
+    .kb-who {
+      position: static;
+      width: auto;
+      height: auto;
+      overflow: visible;
+      clip-path: none;
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+    .kb-jars {
+      flex-direction: row;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+    .kb-jarchip b { margin-left: 0; padding-left: 0; }
+    .kb-photo { width: 40px; height: 40px; }
+    .kb-balance, .kb-math { align-self: auto; }
     .kb-balance { font-size: 3.5rem; }
     .kb-bar { width: 100%; }
     .kb-jars { justify-content: center; }
