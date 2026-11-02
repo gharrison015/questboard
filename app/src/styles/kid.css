@@ -62,7 +62,7 @@
   grid-template-columns: 84px minmax(0, 1fr) auto;
   grid-template-areas:
     "buddy bal  jars"
-    "buddy math jars"
+    "math  math math"
     "bar   bar  bar";
   align-items: center;
   column-gap: 12px;
@@ -108,7 +108,7 @@
 }
 .kb-balance {
   grid-area: bal;
-  align-self: end;
+  align-self: center;
   margin: 0;
   font-family: var(--font-display);
   font-weight: 700;
@@ -131,7 +131,6 @@
 }
 .kb-math {
   grid-area: math;
-  align-self: start;
   min-width: 0;
 }
 /* The math is a button that opens the week breakdown. The negative margin keeps a 48px tap
@@ -146,8 +145,9 @@
   color: var(--ink);
   font: inherit;
   font-weight: 800;
-  font-size: 1rem;
+  font-size: 1.0625rem;
   text-align: left;
+  white-space: nowrap;
   cursor: pointer;
 }
 .kb-math-end { white-space: nowrap; }
@@ -207,14 +207,8 @@
   .kb-jars { gap: 4px; }
   .kb-balance { font-size: 2.25rem; }
 }
-@container kb (max-width: 359px) {
-  .kb-hero {
-    grid-template-areas:
-      "buddy bal  jars"
-      "math  math math"
-      "bar   bar  bar";
-  }
-  .kb-balance { align-self: center; }
+@container kb (max-width: 300px) {
+  .kb-math-eq { font-size: 0.9375rem; }
 }
 
 /* Right pane: tab bar + scrolling panel. Phone: bar at the bottom. */
