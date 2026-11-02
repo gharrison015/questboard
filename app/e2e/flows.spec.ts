@@ -60,6 +60,12 @@ test('parent logs Yelling and today shows -$0.50', async ({ page }, info) => {
   await page.locator('.pr-reason', { hasText: 'Yelling' }).click()
   await page.getByRole('button', { name: 'Lock' }).click()
   await expect(page.locator('.kb-day[data-today="true"]')).toContainText('-$0.50')
+  await page.getByRole('button', { name: /See how this week added up/ }).first().click()
+  const sheet = page.getByRole('dialog', { name: "This week's money" })
+  await expect(sheet).toContainText('Yelling')
+  await expect(sheet).toContainText('−$0.50')
+  await sheet.getByRole('button', { name: 'Close' }).click()
+  await expect(sheet).toHaveCount(0)
 })
 
 test('five wrong PINs show the lockout copy', async ({ page }, info) => {

@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { formatCents } from '../../engine/money'
-import { dayLabel } from '../../engine/dates'
 import { mathTerms, type WeekState } from '../../engine/week'
+import { Icon } from '../primitives/Icon'
+import { WeekMoney } from './WeekMoney'
 
 const MINUS = '−'
 
@@ -14,29 +16,24 @@ export function mathLineText(ws: WeekState): string {
   return `${parts.join(' ')} = ${f(t.result)}`
 }
 
-/** "Lost: $0.50 + $1 (Wed yelling, Fri not listening)", or null when nothing was lost. */
-function whyText(ws: WeekState): string | null {
-  const days = Object.keys(ws.lostByDay).sort()
-  const items = days.flatMap((d) => ws.lostByDay[d].items.map((i) => ({ day: d, item: i })))
-  if (items.length === 0) return null
-  const f = (c: number): string => formatCents(c)
-  const amounts = items.map((x) => f(x.item.amount)).join(' + ')
-  const reasons = items.map((x) => `${dayLabel(x.day)} ${x.item.label.toLowerCase()}`).join(', ')
-  return `Lost: ${amounts} (${reasons})`
-}
-
+/** The week's math as a button; tapping it opens the day-by-day breakdown with reasons. */
 export function MathLine({ ws }: { ws: WeekState }) {
-  const why = whyText(ws)
-  const t = mathTerms(ws)
-  const keptOnly = t.plus === 0 && t.minus === 0 && t.start > 0
+  const [open, setOpen] = useState(false)
+  // Keep each operator with its amount so a wrap reads "$10 − $1.50" then "= $8.50", and keep
+  // the info icon with the last amount so it never sits alone on a line.
+  const text = mathLineText(ws).replace(/ ([−+=]) /g, ' $1\u00a0')
+  const cut = text.lastIndexOf(' ') + 1
   return (
     <div className="kb-math">
-      <p className="kb-math-eq">{mathLineText(ws)}</p>
-      {why ? (
-        <p className="kb-math-why">{why}</p>
-      ) : keptOnly ? (
-        <p className="kb-math-why">{formatCents(t.start)} kept so far</p>
-      ) : null}
+      <button type="button" className="kb-math-eq" aria-haspopup="dialog" onClick={() => setOpen(true)}>
+        {text.slice(0, cut)}
+        <span className="kb-math-end">
+          {text.slice(cut)}
+          <Icon name="info" size={20} />
+        </span>
+        <span className="qb-sr">See how this week added up</span>
+      </button>
+      {open ? <WeekMoney ws={ws} onClose={() => setOpen(false)} /> : null}
     </div>
   )
 }

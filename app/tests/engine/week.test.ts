@@ -38,6 +38,20 @@ describe('weekState', () => {
     expect(ws.balance).toBe(1100)
   })
 
+  it('(b2) addedByDay names each paid chore and earn-back for the week breakdown', () => {
+    const f = withMoney({}, 'kid-final')
+    const events = [
+      ev({ type: 'chore.checked', kidId: nolan, choreId: TRASH, date: '2026-11-05' }, '2026-11-05T09:00:00'),
+      ev({ type: 'deduction.logged', kidId: nolan, reasonId: 'r-yelling', amount: 100, date: '2026-11-03' }, '2026-11-03T09:00:00'),
+      ev({ type: 'earnback.earned', kidId: nolan, skill: 'math', amount: 100, date: '2026-11-03' }, '2026-11-03T10:00:00'),
+    ]
+    const ws = weekState(f, kidOf(f), events, WS, NOW)
+    const trash = kidOf(f).chores.find((c) => c.id === TRASH)!
+    expect(ws.addedByDay['2026-11-05']).toEqual([{ kind: 'chore', label: trash.label, amount: 100 }])
+    expect(ws.addedByDay['2026-11-03']).toEqual([{ kind: 'earnback', label: 'Earned back: Math', amount: 100 }])
+    expect(ws.addedByDay['2026-11-04']).toBeUndefined()
+  })
+
   it('(c) kid-verify: pending before midnight, pays after, rejected never pays', () => {
     const f = withMoney({}, 'kid-verify')
     const k = kidOf(f)

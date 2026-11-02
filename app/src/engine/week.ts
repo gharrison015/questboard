@@ -14,6 +14,13 @@ export interface ChoreDayState {
   pay: Cents
 }
 
+/** Money added on a day: a paid chore or an earn-it-back challenge. */
+export interface AddedItem {
+  kind: 'chore' | 'earnback'
+  label: string
+  amount: Cents
+}
+
 export interface LostItem {
   reasonId: string
   label: string
@@ -31,6 +38,8 @@ export interface WeekState {
   balance: Cents
   lostByDay: Record<DateKey, { amount: Cents; items: LostItem[] }>
   payByDay: Record<DateKey, Cents>
+  /** What was added each day and why, for the week money breakdown. */
+  addedByDay: Record<DateKey, AddedItem[]>
   useCents: boolean
   closed: boolean
   closedBalance?: Cents
@@ -116,6 +125,7 @@ function evaluate(
 
   const payByDay: Record<DateKey, Cents> = {}
   const lostByDay: WeekState['lostByDay'] = {}
+  const addedByDay: WeekState['addedByDay'] = {}
   let pay = 0
   let deductions = 0
   let earnRaw = 0
@@ -125,7 +135,12 @@ function evaluate(
     const day = close ? all.filter((e) => ts(e) <= cutoff) : all
     if (day.length === 0) continue
     let dayPay = 0
-    for (const chore of kid.chores) dayPay += choreDayStateLive(family, kid, chore, date, day, at).pay
+    const added: AddedItem[] = []
+    for (const chore of kid.chores) {
+      const p = choreDayStateLive(family, kid, chore, date, day, at).pay
+      dayPay += p
+      if (p > 0) added.push({ kind: 'chore', label: chore.label, amount: p })
+    }
     if (dayPay !== 0) { payByDay[date] = dayPay; amounts.push(dayPay) }
     pay += dayPay
     for (const e of day) {
@@ -139,8 +154,10 @@ function evaluate(
         amounts.push(e.amount)
       } else if (e.type === 'earnback.earned') {
         earnRaw += e.amount
+        added.push({ kind: 'earnback', label: `Earned back: ${e.skill.charAt(0).toUpperCase()}${e.skill.slice(1)}`, amount: e.amount })
       }
     }
+    if (added.length > 0) addedByDay[date] = added
   }
   const earnback = Math.min(earnRaw, Math.max(0, deductions))
   amounts.push(earnback)
@@ -156,6 +173,7 @@ function evaluate(
     balance,
     lostByDay,
     payByDay,
+    addedByDay,
     useCents: anyCents(amounts),
     closed: close !== undefined,
     ...(close ? { closedBalance: close.balance, closedAt: close.at, ...(close.inactive ? { closedInactive: true } : {}) } : {}),

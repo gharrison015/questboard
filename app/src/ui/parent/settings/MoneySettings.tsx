@@ -21,7 +21,7 @@ function sampleWeek(m: Money): WeekState {
   return {
     weekStart: '', days: [], start: m.startAmount, pay, earnback: 0, deductions,
     balance: Math.max(0, m.startAmount + pay - deductions),
-    lostByDay: {}, payByDay: {}, useCents: false, closed: false,
+    lostByDay: {}, payByDay: {}, addedByDay: {}, useCents: false, closed: false,
   }
 }
 

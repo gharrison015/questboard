@@ -13,7 +13,7 @@ import { ev, makeFamily, nolan, TRASH } from '../fixtures'
 function ws(patch: Partial<WeekState>): WeekState {
   return {
     weekStart: '2026-11-01', days: [], start: 0, pay: 0, earnback: 0, deductions: 0, balance: 0,
-    lostByDay: {}, payByDay: {}, useCents: false, closed: false, ...patch,
+    lostByDay: {}, payByDay: {}, addedByDay: {}, useCents: false, closed: false, ...patch,
   }
 }
 

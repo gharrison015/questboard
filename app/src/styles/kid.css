@@ -134,16 +134,44 @@
   align-self: start;
   min-width: 0;
 }
+/* The math is a button that opens the week breakdown. The negative margin keeps a 48px tap
+   area without making the hero taller. */
 .kb-math-eq {
-  margin: 0;
+  display: block;
+  min-height: 48px;
+  margin: -12px 0;
+  padding: 12px 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
   font-weight: 800;
   font-size: 1rem;
+  text-align: left;
+  cursor: pointer;
 }
-.kb-math-why {
+.kb-math-end { white-space: nowrap; }
+.kb-math-eq .qb-icon { display: inline-block; vertical-align: -4px; margin-left: 6px; color: var(--ink-2); }
+.kb-math-eq:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; border-radius: var(--r-sm); }
+
+/* Week money breakdown */
+.kb-wm-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
   margin: 0;
-  color: var(--ink-2);
-  font-size: 0.875rem;
+  padding: 8px 12px;
+  border-radius: var(--r-sm);
+  background: var(--card-2);
+  font-weight: 700;
 }
+.kb-wm-line b { font-weight: 800; white-space: nowrap; }
+.kb-wm-line[data-sign="add"] b { color: var(--good); }
+.kb-wm-line[data-sign="lose"] b { color: var(--bad); }
+.kb-wm-start { background: none; padding: 0 2px; color: var(--ink-2); }
+.kb-wm-start b { color: var(--ink); }
+.kb-wm-total { margin: 4px 0 0; font-weight: 800; font-size: 1.125rem; text-align: center; }
 .kb-jars {
   grid-area: jars;
   display: flex;
@@ -432,6 +460,7 @@
     .kb-jarchip b { margin-left: 0; padding-left: 0; }
     .kb-photo { width: 40px; height: 40px; }
     .kb-balance, .kb-math { align-self: auto; }
+    .kb-math-eq { text-align: center; }
     .kb-balance { font-size: 3.5rem; }
     .kb-bar { width: 100%; }
     .kb-jars { justify-content: center; }
