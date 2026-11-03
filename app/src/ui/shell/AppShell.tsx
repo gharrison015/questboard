@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { isLab } from '../../app/lab'
 import { isFold } from '../../app/mode'
 import { useApplyUpdateWhenIdle } from '../../app/swUpdate'
 import { sessionValid } from '../../security/session'
@@ -33,9 +34,9 @@ function Shell() {
     root.dataset.buddy = kid?.theme ?? 'truck'
   }, [appearance, kid?.theme])
 
-  // Dev only: ?demo=1 on an empty install loads the demo family once.
+  // Dev server or Device Lab sandbox only: ?demo=1 on an empty install loads the demo family once.
   useEffect(() => {
-    if (!import.meta.env.DEV || family || seeded.current || !wantsDemo()) return
+    if (!(import.meta.env.DEV || isLab()) || family || seeded.current || !wantsDemo()) return
     seeded.current = true
     void seedDemoFamily().then((s) => replaceAll(s.family, s.events))
   }, [family, replaceAll])

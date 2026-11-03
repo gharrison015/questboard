@@ -1,0 +1,321 @@
+/* QuestBoard Device Lab. Uses the app's brand orange and type so it feels like part of QuestBoard. */
+
+:root {
+  --lab-bg: #f3efe8;
+  --lab-panel: #ffffff;
+  --lab-ink: #1b1f3a;
+  --lab-ink-2: #4a5080;
+  --lab-line: #e2dacb;
+  --lab-accent: #c2410c;
+  --lab-accent-ink: #ffffff;
+  --lab-device: #1c1d22;
+  --lab-device-edge: #44464f;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --lab-bg: #0f1230;
+    --lab-panel: #181c40;
+    --lab-ink: #f2f3ff;
+    --lab-ink-2: #c3c7ea;
+    --lab-line: #2d3266;
+    --lab-accent: #ff9a62;
+    --lab-accent-ink: #1b1f3a;
+    --lab-device: #050507;
+    --lab-device-edge: #5a5d6b;
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--lab-bg);
+  color: var(--lab-ink);
+  font-family: 'Nunito', system-ui, sans-serif;
+}
+
+#lab {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+}
+
+.dl-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--lab-panel);
+  border-bottom: 1px solid var(--lab-line);
+}
+
+.dl-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.dl-brand {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+  margin-right: 4px;
+}
+.dl-brand strong { font-family: 'Fredoka', 'Nunito', sans-serif; font-weight: 600; font-size: 18px; color: var(--lab-accent); }
+.dl-brand span { font-size: 13px; font-weight: 700; color: var(--lab-ink-2); }
+
+.dl-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.dl-btn, .dl-select {
+  min-height: 48px;
+  border-radius: 12px;
+  border: 1px solid var(--lab-line);
+  background: var(--lab-bg);
+  color: var(--lab-ink);
+  font: inherit;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.dl-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  cursor: pointer;
+}
+.dl-btn:hover:not(:disabled) { border-color: var(--lab-accent); }
+.dl-btn[aria-pressed="true"] { background: var(--lab-accent); border-color: var(--lab-accent); color: var(--lab-accent-ink); }
+.dl-btn:disabled, .dl-select:disabled { opacity: 0.45; cursor: not-allowed; }
+.dl-btn:focus-visible, .dl-select:focus-visible { outline: 3px solid var(--lab-accent); outline-offset: 2px; }
+
+.dl-select { padding: 0 10px; min-width: 120px; }
+
+.dl-ico { width: 20px; height: 20px; flex: none; }
+
+.dl-stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 16px;
+  overflow: auto;
+}
+
+.dl-unit {
+  flex: none;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.dl-scaler { position: relative; flex: none; }
+
+.dl-device {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  background: var(--lab-device);
+  border-radius: 56px;
+  box-shadow: 0 0 0 2px var(--lab-device-edge), 0 24px 48px rgba(0, 0, 0, 0.28);
+}
+.dl-c-homebutton { border-radius: 48px; }
+.dl-c-tablet, .dl-c-fold, .dl-c-dual { border-radius: 36px; }
+.dl-c-browser { border-radius: 12px; background: #dcdfe6; overflow: hidden; }
+.dl-c-tv { border-radius: 10px; }
+
+.dl-screen {
+  position: relative;
+  overflow: hidden;
+  border-radius: 44px;
+  background: #ffffff;
+}
+.dl-c-homebutton .dl-screen { border-radius: 4px; }
+.dl-c-tablet .dl-screen, .dl-c-fold .dl-screen, .dl-c-dual .dl-screen { border-radius: 20px; }
+.dl-c-browser .dl-screen, .dl-c-tv .dl-screen { border-radius: 0; }
+
+.dl-frame {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  display: block;
+  background: #fffaf3;
+}
+
+.dl-status {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 34px;
+  font-weight: 700;
+  font-size: 16px;
+  pointer-events: none;
+  color: #000;
+  z-index: 2;
+}
+.dl-status[data-tone="light"] { color: #fff; }
+.dl-status-island { padding: 8px 36px 0 50px; }
+.dl-status-tablet, .dl-status-fold, .dl-status-homebutton { padding: 0 20px; font-size: 13px; }
+.dl-status-punch { padding: 0 22px; font-size: 14px; }
+.dl-sicons svg { width: 66px; height: 14px; display: block; }
+.dl-status-tablet .dl-sicons svg, .dl-status-homebutton .dl-sicons svg { width: 56px; height: 12px; }
+
+.dl-island {
+  position: absolute;
+  top: 11px;
+  left: 50%;
+  width: 124px;
+  height: 36px;
+  margin-left: -62px;
+  border-radius: 20px;
+  background: #000;
+  pointer-events: none;
+  z-index: 3;
+}
+.dl-island-side { top: 50%; left: 11px; width: 36px; height: 124px; margin: -62px 0 0; }
+
+.dl-punch {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  margin-left: -7px;
+  border-radius: 50%;
+  background: #000;
+  pointer-events: none;
+  z-index: 3;
+}
+.dl-punch-side { top: 50%; left: 12px; margin: -7px 0 0; }
+
+.dl-homebar {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  width: 136px;
+  height: 5px;
+  margin-left: -68px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+  z-index: 3;
+}
+
+span.dl-homebutton {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  width: 50px;
+  height: 50px;
+  margin-left: -25px;
+  border-radius: 50%;
+  border: 3px solid var(--lab-device-edge);
+}
+.dl-land > span.dl-homebutton { left: auto; right: 15px; bottom: 50%; margin: 0 0 -25px; }
+
+.dl-crease {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  margin-left: -1px;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.06), rgba(0, 0, 0, 0.14), rgba(0, 0, 0, 0.06));
+  pointer-events: none;
+  z-index: 2;
+}
+.dl-crease-flat { left: 0; right: 0; top: 50%; bottom: auto; width: auto; height: 2px; margin: -1px 0 0; }
+
+.dl-hinge {
+  position: absolute;
+  background: var(--lab-device);
+  z-index: 3;
+}
+
+.dl-browserbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 14px;
+  background: #dcdfe6;
+}
+.dl-dots { display: flex; gap: 7px; }
+.dl-dots i { width: 12px; height: 12px; border-radius: 50%; background: #ff5f57; }
+.dl-dots i:nth-child(2) { background: #febc2e; }
+.dl-dots i:nth-child(3) { background: #28c840; }
+.dl-address {
+  flex: 1;
+  max-width: 560px;
+  height: 26px;
+  line-height: 26px;
+  padding: 0 12px;
+  border-radius: 13px;
+  background: #fff;
+  color: #3b3f52;
+  font-size: 13px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.dl-stand {
+  position: absolute;
+  left: 50%;
+  bottom: -40px;
+  width: 30%;
+  height: 40px;
+  transform: translateX(-50%);
+  background: linear-gradient(var(--lab-device), var(--lab-device-edge));
+  clip-path: polygon(40% 0, 60% 0, 100% 100%, 0 100%);
+}
+
+.dl-caption {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  font-size: 14px;
+  color: var(--lab-ink-2);
+}
+.dl-caption strong { color: var(--lab-ink); }
+.dl-layout { font-weight: 700; color: var(--lab-accent); }
+
+.dl-note {
+  margin: 0;
+  padding: 8px 16px 12px;
+  font-size: 13px;
+  color: var(--lab-ink-2);
+  border-top: 1px solid var(--lab-line);
+  background: var(--lab-panel);
+}
+
+@media (max-width: 900px) {
+  .dl-toolbar { padding: 8px 12px; }
+  /* A narrow side pane keeps two control rows that scroll sideways instead of five wrapped rows. */
+  .dl-row { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; padding-bottom: 2px; }
+  .dl-row > * { flex: none; }
+  .dl-btn span { font-size: 13px; }
+  .dl-note { font-size: 12px; }
+}

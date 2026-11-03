@@ -1,4 +1,5 @@
 import type { DeviceSettings } from '../storage/adapter'
+import { labFold } from './lab'
 
 export type Mode = 'phone' | 'tablet' | 'tv'
 
@@ -33,7 +34,9 @@ export function detectMode(input: ModeInput): Mode {
 
 /** True on a dual-screen fold device. False where the media feature is unsupported. */
 export function isFold(): boolean {
-  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false
+  if (typeof window === 'undefined') return false
+  if (labFold()) return true
+  if (typeof window.matchMedia !== 'function') return false
   try {
     return window.matchMedia('(horizontal-viewport-segments: 2)').matches
   } catch {

@@ -9,8 +9,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
-    max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  padding: max(12px, var(--qb-lab-top, env(safe-area-inset-top))) max(12px, var(--qb-lab-right, env(safe-area-inset-right)))
+    max(12px, var(--qb-lab-bottom, env(safe-area-inset-bottom))) max(12px, var(--qb-lab-left, env(safe-area-inset-left)));
   background: var(--bg);
   overflow: hidden;
 }

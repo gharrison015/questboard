@@ -18,8 +18,30 @@ const BUILD = `${commit()}-${Date.now().toString(36)}`
 export default defineConfig({
   define: { 'import.meta.env.VITE_APP_VERSION': JSON.stringify(BUILD) },
   base: '/questboard/',
+  build: {
+    rollupOptions: {
+      input: { main: 'index.html', devlab: 'devlab/index.html' },
+    },
+  },
   plugins: [
     react(),
+    {
+      // The dev server opens on the Device Lab, so a preview pane pointed at the port lands there.
+      name: 'qb-devlab-home',
+      apply: 'serve',
+      configureServer(server) {
+        server.middlewares.use((req, res, next) => {
+          const [path, query = ''] = (req.url ?? '').split('?')
+          if (path === '/' || path === '/questboard' || path === '/questboard/devlab') {
+            res.statusCode = 302
+            res.setHeader('Location', `/questboard/devlab/${query ? `?${query}` : ''}`)
+            res.end()
+            return
+          }
+          next()
+        })
+      },
+    },
     {
       name: 'qb-version-file',
       apply: 'build',
@@ -37,8 +59,10 @@ export default defineConfig({
         clientsClaim: true,
         cleanupOutdatedCaches: true,
         navigateFallback: '/questboard/index.html',
-        navigateFallbackDenylist: [/^\/questboard\/prototype\//],
+        navigateFallbackDenylist: [/^\/questboard\/prototype\//, /^\/questboard\/devlab\//],
         globPatterns: ['**/*.{js,css,html,png,woff2}'],
+        // The Device Lab is a developer page; family devices never need it offline.
+        globIgnores: ['devlab/**', 'assets/devlab-*'],
       },
       manifest: {
         name: 'QuestBoard',

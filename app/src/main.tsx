@@ -9,6 +9,7 @@ import { keepPagePinned } from './app/keepPagePinned.ts'
 import { markUpdateReady } from './app/swUpdate.ts'
 import { StoreProvider } from './state/store.tsx'
 import { LocalAdapter } from './storage/local.ts'
+import { isLab, LAB_DB } from './app/lab.ts'
 
 // The worker activates a new version as soon as it installs (public/sw-migrate.js). The open
 // page keeps running the code it loaded and reloads into the new version at an idle moment:
@@ -27,7 +28,7 @@ keepPagePinned()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <StoreProvider adapter={new LocalAdapter()}>
+    <StoreProvider adapter={new LocalAdapter(isLab() ? LAB_DB : undefined)}>
       <App />
     </StoreProvider>
   </StrictMode>,
