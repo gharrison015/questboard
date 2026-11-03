@@ -13,6 +13,7 @@ import { isLocked, PARENT_SESSION_MS, sessionValid, tryUnlock, type LockoutState
 import { DEFAULT_DEVICE, EMPTY_LOCKOUT, type DeviceSettings, type StorageAdapter } from '../storage/adapter'
 import { LoadError } from '../ui/shell/LoadError'
 import { storeReducer, type StoreState, type View } from './storeState'
+import { isLab, LAB_CHANNEL } from '../app/lab'
 
 export interface StoreValue {
   family: Family | null
@@ -55,7 +56,7 @@ const StoreCtx = createContext<StoreValue | null>(null)
 const ActionsCtx = createContext<Actions | null>(null)
 
 const TICK_MS = 60_000
-const CHANNEL = 'qb'
+const CHANNEL = isLab() ? LAB_CHANNEL : 'qb'
 const CLOSE_LOCK = 'qb-closes'
 
 export function activeKids(family: Family | null): Kid[] {

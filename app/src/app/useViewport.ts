@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
+import { labTouch } from './lab'
 import type { ModeInput } from './mode'
 
 export type Viewport = Pick<ModeInput, 'width' | 'coarse' | 'hash'>
 
 export function readViewport(): Viewport {
-  const coarse = typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches
+  const coarse = labTouch() || typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches
   return { width: window.innerWidth, coarse, hash: window.location.hash }
 }
 

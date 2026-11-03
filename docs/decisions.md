@@ -2,6 +2,12 @@
 
 Newest first. Each entry: date, decision, why. The spec holds the full design; this is the story of how it got there.
 
+## 2026-11-03
+
+- **Device Lab for testing in Claude Code.** Greg wants to play with the app beside the chat on iPhone, iPad, fold, Android, web and TV frames. Built as a developer page at `/questboard/devlab/` (dev server root opens on it; `.claude/launch.json` starts it in the desktop preview pane). Framed copies run in a separate `questboard-lab` database so testing never touches family data. Kept out of the offline cache. How-to in `docs/launch/device-lab.md`.
+- **Store launch plan written, not started.** `docs/launch/app-store-and-payments.md`: enroll as an LLC (recommended), choose the final name before the bundle id exists, Capacitor wrapper, RevenueCat on store billing, server-owned entitlements. Open decisions for Greg: individual or LLC, Kids category or Lifestyle, final name.
+- **Backend design for scale.** `docs/launch/backend-scale.md` expands spec section 9 with a schema, the sync protocol (server `seq` cursor, idempotent ULID inserts), capacity math to 5M families and week snapshots plus archiving to keep storage in check.
+
 ## 2026-11-01
 
 - **Prototype worker takeover.** Devices that ran the June prototype kept showing it after v1 deployed: its cache-first worker served the old page, and the new worker waited for a prompt the old page could not show. The new worker now takes over at once when it finds the prototype cache, deletes it and reloads open windows. Normal updates keep the prompt.
